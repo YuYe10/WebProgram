@@ -1,0 +1,77 @@
+<script setup lang="ts">
+import { watch } from 'vue'
+
+const props = withDefaults(defineProps<{
+  open: boolean
+  title?: string
+  size?: 'sm' | 'md' | 'lg'
+}>(), {
+  size: 'md',
+})
+
+const emit = defineEmits<{
+  'update:open': [value: boolean]
+  close: []
+}>()
+
+function close() {
+  emit('update:open', false)
+  emit('close')
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') close()
+}
+
+watch(() => props.open, (val) => {
+  if (val) {
+    document.addEventListener('keydown', onKeydown)
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.removeEventListener('keydown', onKeydown)
+    document.body.style.overflow = ''
+  }
+})
+</script>
+
+<template>
+  <Teleport to="body">
+    <transition name="fade">
+      <div
+        v-if="open"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+        @click.self="close"
+      >
+        <transition name="scale">
+          <div
+            v-if="open"
+            :class="[
+              'relative w-full rounded-xl glass shadow-xl',
+              {
+                sm: 'max-w-sm',
+                md: 'max-w-md',
+                lg: 'max-w-lg',
+              }[size],
+            ]"
+          >
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 class="text-lg font-semibold">{{ title }}</h3>
+              <button
+                class="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                @click="close"
+              >
+                <span class="i-ph-x w-5 h-5" />
+              </button>
+            </div>
+            <div class="px-6 py-4">
+              <slot />
+            </div>
+            <div v-if="$slots.footer" class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+              <slot name="footer" />
+            </div>
+          </div>
+        </transition>
+      </div>
+    </transition>
+  </Teleport>
+</template>
