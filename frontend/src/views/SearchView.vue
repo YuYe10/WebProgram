@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { searchApi } from '@/api/search'
 import type { Note } from '@/types/note'
@@ -16,6 +16,8 @@ const query = ref((route.query.q as string) || '')
 const results = ref<Note[]>([])
 const isLoading = ref(false)
 const total = ref(0)
+
+const emptyDescription = computed(() => `No notes found for "${query.value}"`)
 
 const search = useDebounceFn(async () => {
   if (!query.value.trim()) {
@@ -65,7 +67,7 @@ function goToNote(note: Note) {
       <UiEmpty
         icon="i-ph-magnifying-glass"
         title="No results"
-        :description="`No notes found for \"${query}\"`"
+        :description="emptyDescription"
       />
     </div>
 

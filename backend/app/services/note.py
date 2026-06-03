@@ -179,6 +179,44 @@ class NoteService:
         await db.refresh(note)
         return _note_to_response(note)
 
+    async def list_all_notes(
+        self, db: AsyncSession, user_id: uuid.UUID, page: int = 1, size: int = 20
+    ) -> tuple[list[NoteResponse], int]:
+        """List all notes across all notebooks for a user."""
+        conditions = [Note.user_id == user_id, Note.is_archived == False]
+        stmt = (
+            select(Note)
+            .where(*conditions)
+            .options(selectinload(Note.tags))
+            .order_by(Note.is_pinned.desc(), Note.updated_at.desc())
+            .offset((page - 1) * size)
+            .limit(size)
+        )
+        count_stmt = select(func.count(Note.id)).where(*conditions)
+        result = await db.execute(stmt)
+        notes = result.scalars().all()
+        total = (await db.execute(count_stmt)).scalar() or 0
+        return [_note_to_response(n) for n in notes], total
+
+    async def list_archived_notes(
+        self, db: AsyncSession, user_id: uuid.UUID, page: int = 1, size: int = 20
+    ) -> tuple[list[NoteResponse], int]:
+        """List archived notes for a user."""
+        conditions = [Note.user_id == user_id, Note.is_archived == True]
+        stmt = (
+            select(Note)
+            .where(*conditions)
+            .options(selectinload(Note.tags))
+            .order_by(Note.updated_at.desc())
+            .offset((page - 1) * size)
+            .limit(size)
+        )
+        count_stmt = select(func.count(Note.id)).where(*conditions)
+        result = await db.execute(stmt)
+        notes = result.scalars().all()
+        total = (await db.execute(count_stmt)).scalar() or 0
+        return [_note_to_response(n) for n in notes], total
+
     async def attach_tag(self, db: AsyncSession, note_id: uuid.UUID, user_id: uuid.UUID, tag_id: str) -> NoteResponse:
         result = await db.execute(select(Note).where(Note.id == note_id))
         note = result.scalar_one_or_none()

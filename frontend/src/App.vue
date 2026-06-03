@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useUiStore } from '@/stores/ui'
+import UiToastContainer from '@/components/ui/UiToastContainer.vue'
 
 const ui = useUiStore()
 </script>

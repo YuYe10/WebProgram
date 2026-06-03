@@ -18,6 +18,33 @@ from app.services.note import note_service
 
 router = APIRouter()
 
+# Static routes must come before parameterized routes
+
+@router.get("/notes", response_model=PaginatedResponse[NoteResponse])
+async def list_all_notes(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all notes across all notebooks."""
+    items, total = await note_service.list_all_notes(db, current_user.id, page=page, size=size)
+    pages = (total + size - 1) // size
+    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=pages)
+
+
+@router.get("/notes/archived", response_model=PaginatedResponse[NoteResponse])
+async def list_archived_notes(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all archived notes."""
+    items, total = await note_service.list_archived_notes(db, current_user.id, page=page, size=size)
+    pages = (total + size - 1) // size
+    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=pages)
+
 
 @router.get("/notebooks/{notebook_id}/notes", response_model=PaginatedResponse[NoteResponse])
 async def list_notes(

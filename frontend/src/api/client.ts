@@ -69,8 +69,13 @@ client.interceptors.response.use(
           `${client.defaults.baseURL}/auth/refresh`,
           { refresh_token: refreshToken }
         )
+        // Sync tokens to localStorage
         localStorage.setItem('access_token', data.access_token)
         localStorage.setItem('refresh_token', data.refresh_token)
+        // Sync tokens to Pinia auth store
+        const authStore = useAuthStore()
+        authStore.accessToken = data.access_token
+        authStore.refreshToken = data.refresh_token
         processQueue(null, data.access_token)
         originalRequest.headers.Authorization = `Bearer ${data.access_token}`
         return client(originalRequest)

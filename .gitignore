@@ -255,10 +255,10 @@ $RECYCLE.BIN/
 *~
 
 # ===================================
-# Docker
+# Uploaded files
 # ===================================
-# Docker volumes (if using bind mounts)
-# pgdata/
+backend/uploads/*
+!backend/uploads/.gitkeep
 
 # ===================================
 # Temporary files

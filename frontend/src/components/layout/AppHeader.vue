@@ -41,7 +41,7 @@ function handleSearch() {
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Search notes... (Cmd+K)"
+          placeholder="Search notes... (Ctrl+K)"
           class="w-full pl-10 pr-4 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
         />
       </form>

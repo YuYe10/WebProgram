@@ -30,6 +30,14 @@ export const notesApi = {
     return client.patch(`/notes/${id}/pin`, { is_pinned: isPinned }).then((r) => r.data)
   },
 
+  getAllNotes(params?: { page?: number; size?: number }): Promise<PaginatedResponse<Note>> {
+    return client.get('/notes', { params }).then((r) => r.data)
+  },
+
+  getArchivedNotes(params?: { page?: number; size?: number }): Promise<PaginatedResponse<Note>> {
+    return client.get('/notes/archived', { params }).then((r) => r.data)
+  },
+
   archive(id: string, isArchived: boolean): Promise<Note> {
     return client.patch(`/notes/${id}/archive`, { is_archived: isArchived }).then((r) => r.data)
   },

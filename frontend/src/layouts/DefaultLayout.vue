@@ -1,9 +1,28 @@
 <script setup lang="ts">
+import { onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUiStore } from '@/stores/ui'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 
 const ui = useUiStore()
+const router = useRouter()
+
+// Global Ctrl+K shortcut to focus search
+function handleGlobalKeydown(e: KeyboardEvent) {
+  if (e.ctrlKey && e.key === 'k') {
+    e.preventDefault()
+    router.push({ name: 'search' })
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleGlobalKeydown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleGlobalKeydown)
+})
 </script>
 
 <template>

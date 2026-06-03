@@ -5,6 +5,7 @@ from app.api.v1.notebooks import router as notebooks_router
 from app.api.v1.notes import router as notes_router
 from app.api.v1.tags import router as tags_router
 from app.api.v1.search import router as search_router
+from app.api.v1.uploads import router as uploads_router
 
 api_v1_router = APIRouter()
 
@@ -13,3 +14,4 @@ api_v1_router.include_router(notebooks_router, prefix="/notebooks", tags=["Noteb
 api_v1_router.include_router(notes_router, tags=["Notes"])
 api_v1_router.include_router(tags_router, prefix="/tags", tags=["Tags"])
 api_v1_router.include_router(search_router, prefix="/search", tags=["Search"])
+api_v1_router.include_router(uploads_router, prefix="/uploads", tags=["Uploads"])
