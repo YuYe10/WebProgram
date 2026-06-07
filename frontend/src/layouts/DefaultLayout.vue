@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useUiStore } from '@/stores/ui'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 
 const ui = useUiStore()
-const router = useRouter()
+const headerRef = ref<InstanceType<typeof AppHeader> | null>(null)
 
-// Global Ctrl+K shortcut to focus search
+// Global Ctrl+K shortcut to focus search bar
 function handleGlobalKeydown(e: KeyboardEvent) {
   if (e.ctrlKey && e.key === 'k') {
     e.preventDefault()
-    router.push({ name: 'search' })
+    headerRef.value?.focusSearch()
   }
 }
 
@@ -46,7 +45,7 @@ onBeforeUnmount(() => {
         'lg:ml-64',
       ]"
     >
-      <AppHeader />
+      <AppHeader ref="headerRef" />
       <main class="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
         <router-view />
       </main>

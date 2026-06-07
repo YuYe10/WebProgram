@@ -21,6 +21,9 @@ import TextStyle from '@tiptap/extension-text-style'
 import Color from '@tiptap/extension-color'
 import Typography from '@tiptap/extension-typography'
 import CharacterCount from '@tiptap/extension-character-count'
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
+import { common, createLowlight } from 'lowlight'
+import { mergeAttributes } from '@tiptap/core'
 import UiButton from '@/components/ui/UiButton.vue'
 import client from '@/api/client'
 
@@ -44,12 +47,50 @@ const contextMenu = ref({
   x: 0,
   y: 0,
 })
+const showColorSubmenu = ref(false)
+
+// Preset colors for the color sub-menu
+const presetColors = [
+  '#ef4444', '#f97316', '#f59e0b', '#eab308',
+  '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6',
+  '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
+  '#ec4899', '#f43f5e', '#6b7280', '#374151',
+]
+
+// Syntax highlighting setup
+const lowlight = createLowlight(common)
+
+// Custom CodeBlock with language label
+const CodeBlockWithLabel = CodeBlockLowlight.extend({
+  renderHTML({ node, HTMLAttributes }) {
+    const language = node.attrs.language
+    return [
+      'pre',
+      mergeAttributes(
+        this.options.HTMLAttributes,
+        HTMLAttributes,
+        language ? { 'data-language': language } : {},
+      ),
+      [
+        'code',
+        {
+          class: language
+            ? this.options.languageClassPrefix + language
+            : null,
+        },
+        0,
+      ],
+    ]
+  },
+}).configure({ lowlight })
 
 const editor = useEditor({
   extensions: [
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
+      codeBlock: false,
     }),
+    CodeBlockWithLabel,
     Placeholder.configure({ placeholder: 'Start writing...' }),
     TextStyle,
     Color,
@@ -196,6 +237,7 @@ function handleContextMenu(e: MouseEvent) {
 
 function closeContextMenu() {
   contextMenu.value.visible = false
+  showColorSubmenu.value = false
 }
 
 function contextAction(action: string, payload?: any) {
@@ -222,9 +264,6 @@ function contextAction(action: string, payload?: any) {
       }
       break
     }
-    case 'color':
-      triggerColorPicker()
-      break
     case 'image':
       triggerImageUpload()
       break
@@ -329,7 +368,7 @@ watch(title, () => {
         @click="editor?.chain().focus().toggleHighlight().run()"
         :class="{ 'bg-brand-100 dark:bg-brand-900/30 text-brand-600': editor?.isActive('highlight') }"
       >
-        <span class="i-ph-text-highlight w-5 h-5" />
+        <span class="text-sm font-bold">H</span>
       </button>
 
       <!-- Text color button -->
@@ -506,14 +545,46 @@ watch(title, () => {
             <span class="i-ph-text-underline w-4 h-4" />
           </button>
           <button class="context-menu-btn" :class="{ active: editor?.isActive('highlight') }" title="Highlight" @click="contextAction('highlight')">
-            <span class="i-ph-text-highlight w-4 h-4" />
+            <span class="text-xs font-bold">H</span>
           </button>
-          <button class="context-menu-btn" title="Text Color" @click="contextAction('color')">
-            <span class="relative">
-              <span class="i-ph-text-aa w-4 h-4" />
-              <span class="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-0.5 rounded-full" :style="{ backgroundColor: getCurrentColor() }" />
-            </span>
-          </button>
+          <div class="relative">
+            <button
+              class="context-menu-btn"
+              :class="{ active: showColorSubmenu || !!editor?.getAttributes('textStyle').color }"
+              title="Text Color"
+              @click="showColorSubmenu = !showColorSubmenu"
+            >
+              <span class="relative">
+                <span class="i-ph-text-aa w-4 h-4" />
+                <span class="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-0.5 rounded-full" :style="{ backgroundColor: getCurrentColor() }" />
+              </span>
+            </button>
+            <!-- Color sub-menu -->
+            <div
+              v-if="showColorSubmenu"
+              class="absolute left-0 top-full mt-1 p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-50"
+              style="display: flex; flex-wrap: wrap; gap: 6px; width: 122px;"
+              @click.stop
+            >
+              <button
+                v-for="c in presetColors"
+                :key="c"
+                class="rounded-sm border transition-colors shrink-0"
+                :class="{ 'border-brand-500 !border-2': getCurrentColor() === c, 'border-gray-200/60 dark:border-gray-700/60': getCurrentColor() !== c }"
+                :style="{ backgroundColor: c, width: '22px', height: '22px' }"
+                :title="c"
+                @click="setColor(c); showColorSubmenu = false"
+              />
+              <button
+                class="rounded-sm border border-gray-300 dark:border-gray-600 flex items-center justify-center transition-colors hover:border-gray-400 dark:hover:border-gray-500 shrink-0"
+                style="width: 22px; height: 22px;"
+                title="Default"
+                @click="setColor(''); showColorSubmenu = false"
+              >
+                <span class="i-ph-x text-gray-400" style="width: 10px; height: 10px;" />
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Headings -->
@@ -658,5 +729,179 @@ watch(title, () => {
 .ProseMirror hr.ProseMirror-selectednode {
   outline: 2px solid var(--color-brand-500);
   outline-offset: 1px;
+}
+
+/* ── Task List ── */
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none !important;
+  padding-left: 0 !important;
+}
+/* TaskItem NodeView doesn't set data-type on <li>, only data-checked */
+.ProseMirror ul[data-type="taskList"] > li {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.ProseMirror ul[data-type="taskList"] > li::before {
+  display: none !important;
+}
+.ProseMirror ul[data-type="taskList"] > li > label {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  user-select: none;
+}
+.ProseMirror ul[data-type="taskList"] > li > div {
+  flex: 1;
+  min-width: 0;
+}
+.ProseMirror ul[data-type="taskList"] > li::marker {
+  content: none;
+}
+.ProseMirror ul[data-type="taskList"] > li > div > p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* ── Code block: language label ── */
+.ProseMirror pre {
+  position: relative;
+  padding-top: 2rem;
+}
+.ProseMirror pre[data-language]::before {
+  content: attr(data-language);
+  position: absolute;
+  top: 0;
+  left: 0.75rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6366f1;
+  background: #eef2ff;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0 0 4px 4px;
+  pointer-events: none;
+}
+.dark .ProseMirror pre[data-language]::before {
+  color: #a5b4fc;
+  background: #312e81;
+}
+
+/* ── Syntax highlighting theme (light) ── */
+.ProseMirror .hljs-comment,
+.ProseMirror .hljs-quote {
+  color: #6b7280;
+  font-style: italic;
+}
+.ProseMirror .hljs-keyword,
+.ProseMirror .hljs-selector-tag,
+.ProseMirror .hljs-type {
+  color: #a855f7;
+  font-weight: 500;
+}
+.ProseMirror .hljs-string,
+.ProseMirror .hljs-addition {
+  color: #16a34a;
+}
+.ProseMirror .hljs-number,
+.ProseMirror .hljs-literal {
+  color: #ea580c;
+}
+.ProseMirror .hljs-title,
+.ProseMirror .hljs-section,
+.ProseMirror .hljs-name {
+  color: #2563eb;
+}
+.ProseMirror .hljs-attr,
+.ProseMirror .hljs-attribute {
+  color: #ca8a04;
+}
+.ProseMirror .hljs-built_in,
+.ProseMirror .hljs-function .hljs-title {
+  color: #7c3aed;
+}
+.ProseMirror .hljs-variable,
+.ProseMirror .hljs-template-variable {
+  color: #dc2626;
+}
+.ProseMirror .hljs-regexp,
+.ProseMirror .hljs-link {
+  color: #0891b2;
+}
+.ProseMirror .hljs-tag,
+.ProseMirror .hljs-selector-class {
+  color: #db2777;
+}
+.ProseMirror .hljs-symbol,
+.ProseMirror .hljs-bullet,
+.ProseMirror .hljs-meta {
+  color: #4f46e5;
+}
+.ProseMirror .hljs-deletion {
+  color: #dc2626;
+}
+.ProseMirror .hljs-emphasis {
+  font-style: italic;
+}
+.ProseMirror .hljs-strong {
+  font-weight: 600;
+}
+.ProseMirror pre code .hljs-params {
+  color: #374151;
+}
+
+/* ── Syntax highlighting theme (dark) ── */
+.dark .ProseMirror .hljs-comment,
+.dark .ProseMirror .hljs-quote {
+  color: #6b7280;
+}
+.dark .ProseMirror .hljs-keyword,
+.dark .ProseMirror .hljs-selector-tag,
+.dark .ProseMirror .hljs-type {
+  color: #c084fc;
+}
+.dark .ProseMirror .hljs-string,
+.dark .ProseMirror .hljs-addition {
+  color: #4ade80;
+}
+.dark .ProseMirror .hljs-number,
+.dark .ProseMirror .hljs-literal {
+  color: #fb923c;
+}
+.dark .ProseMirror .hljs-title,
+.dark .ProseMirror .hljs-section,
+.dark .ProseMirror .hljs-name {
+  color: #60a5fa;
+}
+.dark .ProseMirror .hljs-attr,
+.dark .ProseMirror .hljs-attribute {
+  color: #facc15;
+}
+.dark .ProseMirror .hljs-built_in,
+.dark .ProseMirror .hljs-function .hljs-title {
+  color: #a78bfa;
+}
+.dark .ProseMirror .hljs-variable,
+.dark .ProseMirror .hljs-template-variable {
+  color: #f87171;
+}
+.dark .ProseMirror .hljs-regexp,
+.dark .ProseMirror .hljs-link {
+  color: #22d3ee;
+}
+.dark .ProseMirror .hljs-tag,
+.dark .ProseMirror .hljs-selector-class {
+  color: #f472b6;
+}
+.dark .ProseMirror .hljs-symbol,
+.dark .ProseMirror .hljs-bullet,
+.dark .ProseMirror .hljs-meta {
+  color: #818cf8;
+}
+.dark .ProseMirror .hljs-deletion {
+  color: #f87171;
+}
+.dark .ProseMirror pre code .hljs-params {
+  color: #d1d5db;
 }
 </style>
