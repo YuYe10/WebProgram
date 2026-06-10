@@ -30,7 +30,7 @@ export const notesApi = {
     return client.patch(`/notes/${id}/pin`, { is_pinned: isPinned }).then((r) => r.data)
   },
 
-  getAllNotes(params?: { page?: number; size?: number }): Promise<PaginatedResponse<Note>> {
+  getAllNotes(params?: { page?: number; size?: number; tag_id?: string }): Promise<PaginatedResponse<Note>> {
     return client.get('/notes', { params }).then((r) => r.data)
   },
 
@@ -42,11 +42,11 @@ export const notesApi = {
     return client.patch(`/notes/${id}/archive`, { is_archived: isArchived }).then((r) => r.data)
   },
 
-  attachTag(noteId: string, tagId: string): Promise<void> {
-    return client.post(`/notes/${noteId}/tags`, { tag_id: tagId })
+  attachTag(noteId: string, tagId: string): Promise<Note> {
+    return client.post(`/notes/${noteId}/tags`, { tag_id: tagId }).then((r) => r.data)
   },
 
-  detachTag(noteId: string, tagId: string): Promise<void> {
-    return client.delete(`/notes/${noteId}/tags/${tagId}`)
+  detachTag(noteId: string, tagId: string): Promise<Note> {
+    return client.delete(`/notes/${noteId}/tags/${tagId}`).then((r) => r.data)
   },
 }

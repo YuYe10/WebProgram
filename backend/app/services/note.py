@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.exceptions import ForbiddenException, NotFoundException
+from app.core.exceptions import ConflictException, ForbiddenException, NotFoundException
 from app.models.note import Note
 from app.models.notebook import Notebook
 from app.models.tag import NoteTag, Tag
@@ -67,7 +67,7 @@ class NoteService:
         stmt = (
             select(Note)
             .where(*conditions)
-            .options(selectinload(Note.tags))
+            .options(selectinload(Note.tags), selectinload(Note.notebook))
             .order_by(Note.is_pinned.desc(), Note.updated_at.desc())
             .offset((page - 1) * size)
             .limit(size)
@@ -82,7 +82,7 @@ class NoteService:
 
     async def get_note(self, db: AsyncSession, note_id: uuid.UUID, user_id: uuid.UUID) -> NoteResponse:
         result = await db.execute(
-            select(Note).where(Note.id == note_id).options(selectinload(Note.tags))
+            select(Note).where(Note.id == note_id).options(selectinload(Note.tags), selectinload(Note.notebook))
         )
         note = result.scalar_one_or_none()
         if not note:
@@ -100,6 +100,16 @@ class NoteService:
             raise NotFoundException("Notebook not found")
         if nb.user_id != user_id:
             raise ForbiddenException("Access denied")
+
+        # Check for duplicate title in the same notebook
+        dup_result = await db.execute(
+            select(Note).where(
+                Note.notebook_id == notebook_id,
+                Note.title == data.title,
+            )
+        )
+        if dup_result.scalar_one_or_none():
+            raise ConflictException("A note with this title already exists in this notebook")
 
         note = Note(
             notebook_id=notebook_id,
@@ -128,7 +138,7 @@ class NoteService:
     async def update(
         self, db: AsyncSession, note_id: uuid.UUID, user_id: uuid.UUID, data: NoteUpdate
     ) -> NoteResponse:
-        result = await db.execute(select(Note).where(Note.id == note_id).options(selectinload(Note.tags)))
+        result = await db.execute(select(Note).where(Note.id == note_id).options(selectinload(Note.tags), selectinload(Note.notebook)))
         note = result.scalar_one_or_none()
         if not note:
             raise NotFoundException("Note not found")
@@ -136,6 +146,19 @@ class NoteService:
             raise ForbiddenException("Access denied")
 
         update_data = data.model_dump(exclude_unset=True)
+
+        # Check for duplicate title when title is being changed
+        if "title" in update_data and update_data["title"] != note.title:
+            dup_result = await db.execute(
+                select(Note).where(
+                    Note.notebook_id == note.notebook_id,
+                    Note.title == update_data["title"],
+                    Note.id != note_id,
+                )
+            )
+            if dup_result.scalar_one_or_none():
+                raise ConflictException("A note with this title already exists in this notebook")
+
         if "content" in update_data:
             update_data["plain_text"] = extract_plain_text(update_data["content"])
         for field, value in update_data.items():
@@ -156,7 +179,7 @@ class NoteService:
         await db.flush()
 
     async def pin(self, db: AsyncSession, note_id: uuid.UUID, user_id: uuid.UUID, data: NotePinUpdate) -> NoteResponse:
-        result = await db.execute(select(Note).where(Note.id == note_id).options(selectinload(Note.tags)))
+        result = await db.execute(select(Note).where(Note.id == note_id).options(selectinload(Note.tags), selectinload(Note.notebook)))
         note = result.scalar_one_or_none()
         if not note:
             raise NotFoundException("Note not found")
@@ -168,7 +191,7 @@ class NoteService:
         return _note_to_response(note)
 
     async def archive(self, db: AsyncSession, note_id: uuid.UUID, user_id: uuid.UUID, data: NoteArchiveUpdate) -> NoteResponse:
-        result = await db.execute(select(Note).where(Note.id == note_id).options(selectinload(Note.tags)))
+        result = await db.execute(select(Note).where(Note.id == note_id).options(selectinload(Note.tags), selectinload(Note.notebook)))
         note = result.scalar_one_or_none()
         if not note:
             raise NotFoundException("Note not found")
@@ -180,14 +203,23 @@ class NoteService:
         return _note_to_response(note)
 
     async def list_all_notes(
-        self, db: AsyncSession, user_id: uuid.UUID, page: int = 1, size: int = 20
+        self, db: AsyncSession, user_id: uuid.UUID, page: int = 1, size: int = 20,
+        tag_id: str | None = None,
     ) -> tuple[list[NoteResponse], int]:
         """List all notes across all notebooks for a user."""
         conditions = [Note.user_id == user_id, Note.is_archived == False]
+
+        if tag_id:
+            try:
+                tag_uuid = uuid.UUID(tag_id)
+                conditions.append(Note.tags.any(id=tag_uuid))
+            except ValueError:
+                pass
+
         stmt = (
             select(Note)
             .where(*conditions)
-            .options(selectinload(Note.tags))
+            .options(selectinload(Note.tags), selectinload(Note.notebook))
             .order_by(Note.is_pinned.desc(), Note.updated_at.desc())
             .offset((page - 1) * size)
             .limit(size)
@@ -206,7 +238,7 @@ class NoteService:
         stmt = (
             select(Note)
             .where(*conditions)
-            .options(selectinload(Note.tags))
+            .options(selectinload(Note.tags), selectinload(Note.notebook))
             .order_by(Note.updated_at.desc())
             .offset((page - 1) * size)
             .limit(size)
@@ -273,6 +305,7 @@ def _note_to_response(note: Note) -> NoteResponse:
         plain_text=note.plain_text,
         is_pinned=note.is_pinned,
         is_archived=note.is_archived,
+        notebook_name=note.notebook.name if note.notebook else None,
         created_at=note.created_at,
         updated_at=note.updated_at,
         tags=[TagResponse(id=t.id, user_id=t.user_id, name=t.name, color=t.color, created_at=t.created_at) for t in (note.tags or [])],

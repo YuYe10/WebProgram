@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ForbiddenException, NotFoundException
+from app.core.exceptions import ConflictException, ForbiddenException, NotFoundException
 from app.models.notebook import Notebook
 from app.models.note import Note
 from app.schemas.notebook import NotebookCreate, NotebookResponse, NotebookUpdate
@@ -53,6 +53,13 @@ class NotebookService:
         )
 
     async def create(self, db: AsyncSession, user_id: uuid.UUID, data: NotebookCreate) -> NotebookResponse:
+        # Check for duplicate name
+        dup_result = await db.execute(
+            select(Notebook).where(Notebook.user_id == user_id, Notebook.name == data.name)
+        )
+        if dup_result.scalar_one_or_none():
+            raise ConflictException("A notebook with this name already exists")
+
         nb = Notebook(user_id=user_id, **data.model_dump())
         db.add(nb)
         await db.flush()
@@ -75,6 +82,19 @@ class NotebookService:
             raise ForbiddenException("Access denied")
 
         update_data = data.model_dump(exclude_unset=True)
+
+        # Check for duplicate name when name is being changed
+        if "name" in update_data and update_data["name"] != nb.name:
+            dup_result = await db.execute(
+                select(Notebook).where(
+                    Notebook.user_id == user_id,
+                    Notebook.name == update_data["name"],
+                    Notebook.id != notebook_id,
+                )
+            )
+            if dup_result.scalar_one_or_none():
+                raise ConflictException("A notebook with this name already exists")
+
         for field, value in update_data.items():
             setattr(nb, field, value)
         await db.flush()

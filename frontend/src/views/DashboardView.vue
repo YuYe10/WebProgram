@@ -52,8 +52,9 @@ async function createNotebook() {
     newDescription.value = ''
     ui.addToast({ type: 'success', message: 'Notebook created!' })
     router.push({ name: 'notebook-detail', params: { id: nb.id } })
-  } catch {
-    ui.addToast({ type: 'error', message: 'Failed to create notebook' })
+  } catch (e: any) {
+    const detail = e.response?.data?.detail || 'Failed to create notebook'
+    ui.addToast({ type: 'error', message: detail })
   } finally {
     creating.value = false
   }

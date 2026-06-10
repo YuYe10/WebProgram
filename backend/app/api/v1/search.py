@@ -15,9 +15,12 @@ async def search(
     q: str = Query(..., min_length=1, description="Search query"),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
+    notebook_id: str | None = Query(None, description="Filter by notebook ID"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    items, total = await search_service.search_notes(db, current_user.id, q, page=page, size=size)
+    items, total = await search_service.search_notes(
+        db, current_user.id, q, page=page, size=size, notebook_id=notebook_id,
+    )
     pages = (total + size - 1) // size
     return PaginatedResponse(items=items, total=total, page=page, size=size, pages=pages)

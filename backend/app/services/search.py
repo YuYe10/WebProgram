@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -11,26 +11,33 @@ from app.schemas.tag import TagResponse
 
 class SearchService:
     async def search_notes(
-        self, db: AsyncSession, user_id: uuid.UUID, query: str, page: int = 1, size: int = 20
+        self, db: AsyncSession, user_id: uuid.UUID, query: str,
+        page: int = 1, size: int = 20, notebook_id: str | None = None,
     ) -> tuple[list[NoteResponse], int]:
-        """Search notes using ILIKE on title and plain_text."""
+        """Search notes using ILIKE on title and plain_text, optionally filtered by notebook."""
         search_term = f"%{query}%"
+
+        conditions = [
+            Note.user_id == user_id,
+            (Note.title.ilike(search_term)) | (Note.plain_text.ilike(search_term)),
+        ]
+
+        if notebook_id:
+            try:
+                nb_uuid = uuid.UUID(notebook_id)
+                conditions.append(Note.notebook_id == nb_uuid)
+            except ValueError:
+                pass
 
         stmt = (
             select(Note)
-            .where(
-                Note.user_id == user_id,
-                (Note.title.ilike(search_term)) | (Note.plain_text.ilike(search_term)),
-            )
-            .options(selectinload(Note.tags))
+            .where(*conditions)
+            .options(selectinload(Note.tags), selectinload(Note.notebook))
             .order_by(Note.updated_at.desc())
             .offset((page - 1) * size)
             .limit(size)
         )
-        count_stmt = select(func.count(Note.id)).where(
-            Note.user_id == user_id,
-            (Note.title.ilike(search_term)) | (Note.plain_text.ilike(search_term)),
-        )
+        count_stmt = select(func.count(Note.id)).where(*conditions)
 
         result = await db.execute(stmt)
         notes = result.scalars().all()
@@ -46,6 +53,7 @@ class SearchService:
                 plain_text=n.plain_text,
                 is_pinned=n.is_pinned,
                 is_archived=n.is_archived,
+                notebook_name=n.notebook.name if n.notebook else None,
                 created_at=n.created_at,
                 updated_at=n.updated_at,
                 tags=[TagResponse(id=t.id, user_id=t.user_id, name=t.name, color=t.color, created_at=t.created_at) for t in (n.tags or [])],

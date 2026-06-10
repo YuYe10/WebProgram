@@ -171,6 +171,10 @@ watch(showDropdown, (val) => {
           <span class="i-ph-note w-4 h-4 text-gray-400 shrink-0" />
           <div class="min-w-0 flex-1">
             <div class="font-medium text-gray-900 dark:text-gray-100 truncate">{{ note.title }}</div>
+            <div v-if="note.notebook_name" class="flex items-center gap-0.5 text-xs text-brand-500 dark:text-brand-400 mb-0.5">
+              <span class="i-ph-notebook w-3 h-3 shrink-0" />
+              <span class="truncate">{{ note.notebook_name }}</span>
+            </div>
             <div class="text-xs text-gray-400 truncate">{{ snippet(note.plain_text) }}</div>
           </div>
         </div>

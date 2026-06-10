@@ -9,6 +9,7 @@ export interface Note {
   plain_text: string | null
   is_pinned: boolean
   is_archived: boolean
+  notebook_name?: string
   created_at: string
   updated_at: string
   tags?: Tag[]

@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useNotesStore } from '@/stores/notes'
+import { useTagsStore } from '@/stores/tags'
 import { useEditorStore } from '@/stores/editor'
 import { useUiStore } from '@/stores/ui'
+import { notesApi } from '@/api/notes'
+import type { Tag } from '@/types/tag'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -30,6 +33,7 @@ import client from '@/api/client'
 const route = useRoute()
 const router = useRouter()
 const notesStore = useNotesStore()
+const tagsStore = useTagsStore()
 const editorStore = useEditorStore()
 const ui = useUiStore()
 
@@ -40,6 +44,33 @@ const isLoading = ref(true)
 const saveTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 const isUploadingImage = ref(false)
 const imageInput = ref<HTMLInputElement | null>(null)
+
+// ── Tag management ──
+const noteTags = ref<Tag[]>([])
+const showTagDropdown = ref(false)
+
+const availableTags = computed(() =>
+  tagsStore.tags.filter(t => !noteTags.value.some(nt => nt.id === t.id))
+)
+
+async function attachTag(tag: Tag) {
+  try {
+    const updated = await notesApi.attachTag(noteId, tag.id)
+    noteTags.value = updated.tags || []
+    showTagDropdown.value = false
+  } catch {
+    ui.addToast({ type: 'error', message: 'Failed to add tag' })
+  }
+}
+
+async function detachTag(tag: Tag) {
+  try {
+    const updated = await notesApi.detachTag(noteId, tag.id)
+    noteTags.value = updated.tags || []
+  } catch {
+    ui.addToast({ type: 'error', message: 'Failed to remove tag' })
+  }
+}
 
 // Context menu state
 const contextMenu = ref({
@@ -286,6 +317,7 @@ onMounted(async () => {
   try {
     const note = await notesStore.fetchNote(noteId)
     title.value = note.title
+    noteTags.value = note.tags || []
     editorStore.currentNoteId = noteId
     if (note.content && editor.value) {
       editor.value.commands.setContent(note.content)
@@ -297,6 +329,8 @@ onMounted(async () => {
   } finally {
     isLoading.value = false
   }
+  // Fetch available tags
+  tagsStore.fetchTags()
 })
 
 // Keyboard shortcut
@@ -517,8 +551,63 @@ watch(title, () => {
       v-model="title"
       type="text"
       placeholder="Note title..."
-      class="w-full text-3xl font-bold bg-transparent border-none outline-none placeholder:text-gray-300 dark:placeholder:text-gray-700 mb-4 px-8"
+      class="w-full text-3xl font-bold bg-transparent border-none outline-none placeholder:text-gray-300 dark:placeholder:text-gray-700 mb-3 px-8"
     />
+
+    <!-- Tag bar -->
+    <div class="flex items-center gap-2 px-8 mb-4 flex-wrap">
+      <!-- Current tags -->
+      <span
+        v-for="tag in noteTags"
+        :key="tag.id"
+        class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors"
+        :style="{ backgroundColor: tag.color + '20', color: tag.color }"
+      >
+        {{ tag.name }}
+        <button
+          class="w-4 h-4 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          @click="detachTag(tag)"
+          title="Remove tag"
+        >
+          <span class="i-ph-x w-3 h-3" />
+        </button>
+      </span>
+
+      <!-- Add tag button + dropdown -->
+      <div class="relative">
+        <button
+          class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-gray-500 hover:text-brand-500 bg-gray-100 dark:bg-gray-800 hover:bg-brand-50 dark:hover:bg-brand-900/30 transition-colors"
+          :class="{ 'text-brand-500 bg-brand-50 dark:bg-brand-900/30': showTagDropdown }"
+          @click="showTagDropdown = !showTagDropdown"
+        >
+          <span class="i-ph-plus w-3.5 h-3.5" />
+          Tag
+        </button>
+
+        <!-- Dropdown -->
+        <div
+          v-if="showTagDropdown"
+          class="absolute left-0 top-full mt-1 w-52 py-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-40 max-h-48 overflow-y-auto"
+          @click.stop
+        >
+          <div v-if="availableTags.length === 0" class="px-3 py-2 text-xs text-gray-400">
+            No more tags available
+          </div>
+          <button
+            v-for="tag in availableTags"
+            :key="tag.id"
+            class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            @click="attachTag(tag)"
+          >
+            <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ backgroundColor: tag.color }" />
+            <span class="text-gray-700 dark:text-gray-300 truncate">{{ tag.name }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Click-outside to close tag dropdown -->
+    <div v-if="showTagDropdown" class="fixed inset-0 z-30" @click="showTagDropdown = false" />
 
     <!-- Editor -->
     <div class="glass-card overflow-hidden" @contextmenu="handleContextMenu">

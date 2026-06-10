@@ -24,11 +24,14 @@ router = APIRouter()
 async def list_all_notes(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
+    tag_id: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """List all notes across all notebooks."""
-    items, total = await note_service.list_all_notes(db, current_user.id, page=page, size=size)
+    """List all notes across all notebooks, optionally filtered by tag."""
+    items, total = await note_service.list_all_notes(
+        db, current_user.id, page=page, size=size, tag_id=tag_id,
+    )
     pages = (total + size - 1) // size
     return PaginatedResponse(items=items, total=total, page=page, size=size, pages=pages)
 

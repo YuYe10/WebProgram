@@ -25,6 +25,7 @@ function isActive(id: string) {
 
 const NAV_ITEMS = [
   { to: '/notes', icon: 'i-ph-note-pencil', label: 'All Notes' },
+  { to: '/search', icon: 'i-ph-magnifying-glass', label: 'Search' },
   { to: '/archived', icon: 'i-ph-archive-box', label: 'Archived' },
   { to: '/tags', icon: 'i-ph-tag', label: 'Tags' },
 ]

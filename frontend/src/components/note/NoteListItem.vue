@@ -3,14 +3,18 @@ import type { Note } from '@/types/note'
 import { format } from 'date-fns'
 
 const props = defineProps<{ note: Note }>()
-defineEmits<{ click: []; delete: [] }>()
+const emit = defineEmits<{
+  click: []
+  delete: []
+  archive: []
+  pin: []
+}>()
 
 function getPreview(): string {
   if (props.note.plain_text) {
     return props.note.plain_text.slice(0, 150)
   }
   if (props.note.content) {
-    // Try to extract text from Tiptap JSON
     const extractText = (node: any): string => {
       if (node.text) return node.text
       if (node.content) return node.content.map(extractText).join(' ')
@@ -25,19 +29,26 @@ function getPreview(): string {
 <template>
   <div
     class="glass-card p-4 cursor-pointer group hover:border-brand-200 dark:hover:border-brand-800 transition-all duration-200"
-    @click="$emit('click')"
+    @click="emit('click')"
   >
     <div class="flex items-start justify-between gap-4">
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 mb-1">
           <span v-if="note.is_pinned" class="i-ph-push-pin w-4 h-4 text-brand-500 flex-shrink-0" />
+          <span v-if="note.is_archived" class="i-ph-archive-box w-4 h-4 text-amber-500 flex-shrink-0" />
           <h3 class="font-medium text-gray-900 dark:text-gray-100 truncate">
             {{ note.title || 'Untitled' }}
           </h3>
         </div>
-        <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-2">
+        <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-1.5">
           {{ getPreview() }}
         </p>
+        <div v-if="note.notebook_name" class="flex items-center gap-1 mb-1.5">
+          <span class="i-ph-notebook w-3.5 h-3.5 text-brand-400 flex-shrink-0" />
+          <span class="text-xs text-brand-500 dark:text-brand-400 truncate">
+            {{ note.notebook_name }}
+          </span>
+        </div>
         <div class="flex items-center gap-3">
           <span class="text-xs text-gray-400 dark:text-gray-500">
             {{ format(new Date(note.updated_at), 'MMM d, yyyy') }}
@@ -51,15 +62,39 @@ function getPreview(): string {
             >
               {{ tag.name }}
             </span>
+            <span v-if="note.tags.length > 3" class="text-xs text-gray-400">
+              +{{ note.tags.length - 3 }}
+            </span>
           </div>
         </div>
       </div>
 
-      <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+      <!-- Action buttons -->
+      <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        <button
+          class="w-7 h-7 flex items-center justify-center rounded-md transition-colors"
+          :class="note.is_pinned
+            ? 'text-brand-500 bg-brand-50 dark:bg-brand-900/30'
+            : 'text-gray-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20'"
+          :title="note.is_pinned ? 'Unpin' : 'Pin'"
+          @click.stop="emit('pin')"
+        >
+          <span class="i-ph-push-pin w-4 h-4" :class="{ 'rotate-45': !note.is_pinned }" />
+        </button>
+        <button
+          class="w-7 h-7 flex items-center justify-center rounded-md transition-colors"
+          :class="note.is_archived
+            ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/30'
+            : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20'"
+          :title="note.is_archived ? 'Restore' : 'Archive'"
+          @click.stop="emit('archive')"
+        >
+          <span :class="note.is_archived ? 'i-ph-arrow-u-up-left' : 'i-ph-archive-box'" class="w-4 h-4" />
+        </button>
         <button
           class="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           title="Delete note"
-          @click.stop="$emit('delete')"
+          @click.stop="emit('delete')"
         >
           <span class="i-ph-trash w-4 h-4" />
         </button>

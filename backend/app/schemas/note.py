@@ -39,6 +39,7 @@ class NoteResponse(BaseModel):
     plain_text: str | None
     is_pinned: bool
     is_archived: bool
+    notebook_name: str | None = None
     created_at: datetime
     updated_at: datetime
     tags: list[TagResponse] = []
