@@ -16,6 +16,7 @@ from app.schemas.note import (
     NoteUpdate,
 )
 from app.schemas.tag import TagResponse
+from app.services.cleanup import delete_orphaned_images, extract_image_filenames
 
 
 def extract_plain_text(content: dict | None) -> str | None:
@@ -159,12 +160,22 @@ class NoteService:
             if dup_result.scalar_one_or_none():
                 raise ConflictException("A note with this title already exists in this notebook")
 
+        # Track removed images when content changes
+        removed_filenames: set[str] = set()
         if "content" in update_data:
+            old_filenames = extract_image_filenames(note.content)
+            new_filenames = extract_image_filenames(update_data["content"])
+            removed_filenames = old_filenames - new_filenames
             update_data["plain_text"] = extract_plain_text(update_data["content"])
+
         for field, value in update_data.items():
             setattr(note, field, value)
         await db.flush()
         await db.refresh(note)
+
+        # Immediately clean up images that were removed from this note
+        if removed_filenames:
+            await delete_orphaned_images(db, removed_filenames)
 
         return _note_to_response(note)
 
@@ -175,8 +186,16 @@ class NoteService:
             raise NotFoundException("Note not found")
         if note.user_id != user_id:
             raise ForbiddenException("Access denied")
+
+        # Extract image filenames before deleting the note
+        image_filenames = extract_image_filenames(note.content)
+
         await db.delete(note)
         await db.flush()
+
+        # Immediately clean up images that are no longer referenced by any note
+        if image_filenames:
+            await delete_orphaned_images(db, image_filenames)
 
     async def pin(self, db: AsyncSession, note_id: uuid.UUID, user_id: uuid.UUID, data: NotePinUpdate) -> NoteResponse:
         result = await db.execute(select(Note).where(Note.id == note_id).options(selectinload(Note.tags), selectinload(Note.notebook)))
@@ -198,6 +217,11 @@ class NoteService:
         if note.user_id != user_id:
             raise ForbiddenException("Access denied")
         note.is_archived = data.is_archived
+        # Set archived_at when archiving, clear when restoring
+        if data.is_archived:
+            note.archived_at = func.now()
+        else:
+            note.archived_at = None
         await db.flush()
         await db.refresh(note)
         return _note_to_response(note)
@@ -305,6 +329,7 @@ def _note_to_response(note: Note) -> NoteResponse:
         plain_text=note.plain_text,
         is_pinned=note.is_pinned,
         is_archived=note.is_archived,
+        archived_at=note.archived_at,
         notebook_name=note.notebook.name if note.notebook else None,
         created_at=note.created_at,
         updated_at=note.updated_at,

@@ -555,7 +555,7 @@ watch(title, () => {
     />
 
     <!-- Tag bar -->
-    <div class="flex items-center gap-2 px-8 mb-4 flex-wrap">
+    <div class="flex items-center gap-2 px-8 mt-2 mb-4 flex-wrap">
       <!-- Current tags -->
       <span
         v-for="tag in noteTags"

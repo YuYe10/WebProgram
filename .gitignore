@@ -259,6 +259,7 @@ $RECYCLE.BIN/
 # ===================================
 backend/uploads/*
 !backend/uploads/.gitkeep
+alembic/versions/*
 
 # ===================================
 # Temporary files

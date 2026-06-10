@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -7,18 +9,43 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.router import api_v1_router
 from app.core.config import settings
-from app.core.database import Base, engine
+from app.core.database import Base, async_session, engine
 from app.core.exceptions import register_exception_handlers
 
+logger = logging.getLogger(__name__)
+
 UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
+
+# Global reference to the background cleanup task so we can cancel it on shutdown
+_cleanup_task: asyncio.Task | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan: create tables on startup, dispose engine on shutdown."""
+    """Application lifespan: create tables on startup, run background cleanup, dispose engine on shutdown."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Start background cleanup loop
+    global _cleanup_task
+    from app.services.cleanup import cleanup_loop
+
+    _cleanup_task = asyncio.create_task(
+        cleanup_loop(async_session, interval_seconds=3600)
+    )
+    logger.info("Background cleanup task started (runs every hour)")
+
     yield
+
+    # Cancel the cleanup task on shutdown
+    if _cleanup_task:
+        _cleanup_task.cancel()
+        try:
+            await _cleanup_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("Background cleanup task stopped")
+
     await engine.dispose()
 
 

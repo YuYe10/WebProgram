@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Note } from '@/types/note'
 import { format } from 'date-fns'
 
@@ -24,6 +25,40 @@ function getPreview(): string {
   }
   return 'No content'
 }
+
+const deletionCountdown = computed(() => {
+  if (!props.note.is_archived || !props.note.archived_at) return null
+
+  const archivedAt = new Date(props.note.archived_at)
+  const deletionAt = new Date(archivedAt.getTime() + 7 * 24 * 60 * 60 * 1000)
+  const now = new Date()
+  const remainingMs = deletionAt.getTime() - now.getTime()
+
+  if (remainingMs <= 0) {
+    return { text: 'Deleting soon...', urgent: true }
+  }
+
+  const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60))
+
+  if (days > 0) {
+    return {
+      text: `Auto-delete in ${days}d ${hours}h`,
+      urgent: days < 1,
+    }
+  }
+  if (hours > 0) {
+    return {
+      text: `Auto-delete in ${hours}h ${minutes}m`,
+      urgent: true,
+    }
+  }
+  return {
+    text: `Auto-delete in ${minutes}m`,
+    urgent: true,
+  }
+})
 </script>
 
 <template>
@@ -52,6 +87,16 @@ function getPreview(): string {
         <div class="flex items-center gap-3">
           <span class="text-xs text-gray-400 dark:text-gray-500">
             {{ format(new Date(note.updated_at), 'MMM d, yyyy') }}
+          </span>
+          <span
+            v-if="deletionCountdown"
+            class="text-xs font-medium"
+            :class="deletionCountdown.urgent
+              ? 'text-red-500 dark:text-red-400'
+              : 'text-amber-500 dark:text-amber-400'"
+          >
+            <span class="i-ph-timer w-3 h-3 inline-block mr-0.5 -mt-0.5" />
+            {{ deletionCountdown.text }}
           </span>
           <div v-if="note.tags?.length" class="flex gap-1">
             <span
