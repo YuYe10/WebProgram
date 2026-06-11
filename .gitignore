@@ -266,3 +266,13 @@ backend/uploads/*
 *.tmp
 *.temp
 tempCodeRunnerFile.py
+
+# LaTeX compilation
+# ===================================
+*.log
+*.aux
+*.out
+*.toc
+*.lot
+*.lof
+*.lot
