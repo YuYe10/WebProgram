@@ -1,3 +1,20 @@
+/**
+ * @component UiButton
+ * @description Reusable button component with variant, size, loading, and disabled states.
+ *   Renders a native <button> element with consistent styling.
+ *
+ * @props variant  - Visual style: 'primary' | 'secondary' | 'ghost' | 'danger' (default: 'secondary')
+ * @props size     - Button size: 'sm' | 'md' | 'lg' (default: 'md')
+ * @props disabled - Whether the button is disabled (default: false)
+ * @props loading  - Whether to show a spinning loader icon (default: false)
+ * @props type     - Native button type: 'button' | 'submit' | 'reset' (default: 'button')
+ *
+ * @emits click - Fired with the native MouseEvent on click
+ *
+ * @example
+ * <UiButton variant="primary" size="md" @click="save">Save</UiButton>
+ * <UiButton variant="danger" :loading="isDeleting">Delete</UiButton>
+ */
 <script setup lang="ts">
 withDefaults(defineProps<{
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'

@@ -1,4 +1,25 @@
 <script setup lang="ts">
+/**
+ * @component TagsManageView
+ * @description Tag management view providing full CRUD operations for tags.
+ * Tags are used to categorize and filter notes across notebooks.
+ *
+ * Key features:
+ * - Create tags with name and color
+ * - Edit existing tag name and color with live preview
+ * - Delete tags with confirmation (removes from all notes)
+ * - Click a tag to navigate to filtered notes view
+ * - Color picker with preset palette
+ *
+ * @dependencies
+ * - useTagsStore: tag data and CRUD operations
+ * - useUiStore: toast notifications
+ * - UiButton, UiModal, UiInput, UiEmpty: shared UI components
+ *
+ * @example
+ * <!-- Route: /tags -->
+ * <TagsManageView />
+ */
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTagsStore } from '@/stores/tags'
@@ -13,21 +34,37 @@ const router = useRouter()
 const tagsStore = useTagsStore()
 const ui = useUiStore()
 
+/** Whether the create-tag modal is visible */
 const showCreateModal = ref(false)
+/** Whether the edit-tag modal is visible */
 const showEditModal = ref(false)
+/** The tag currently being edited */
 const editingTag = ref<Tag | null>(null)
+/** Create form: new tag name */
 const newTagName = ref('')
+/** Create form: new tag color */
 const newTagColor = ref('#a855f7')
+/** Edit form: tag name */
 const editTagName = ref('')
+/** Edit form: tag color */
 const editTagColor = ref('#a855f7')
+/** Whether a tag creation request is in progress */
 const creating = ref(false)
+/** Whether a tag update request is in progress */
 const updating = ref(false)
 
+/** Preset color palette for tag creation and editing */
 const TAG_COLORS = ['#a855f7', '#6366f1', '#3b82f6', '#06b6d4', '#22c55e', '#eab308', '#f97316', '#ef4444', '#ec4899']
 
+/** Fetch tags on mount */
 onMounted(() => tagsStore.fetchTags())
 
 // ── Create tag ──
+
+/**
+ * Creates a new tag with the provided name and color.
+ * Resets the form and closes the modal on success.
+ */
 async function createTag() {
   if (!newTagName.value.trim()) return
   creating.value = true
@@ -45,6 +82,11 @@ async function createTag() {
 }
 
 // ── Edit tag ──
+
+/**
+ * Opens the edit modal, pre-filling the form with the tag's current values.
+ * @param tag - The tag to edit
+ */
 function openEditModal(tag: Tag) {
   editingTag.value = tag
   editTagName.value = tag.name
@@ -52,6 +94,10 @@ function openEditModal(tag: Tag) {
   showEditModal.value = true
 }
 
+/**
+ * Updates the tag being edited with the new name and color.
+ * Closes the modal on success.
+ */
 async function updateTag() {
   if (!editTagName.value.trim() || !editingTag.value) return
   updating.value = true
@@ -71,6 +117,13 @@ async function updateTag() {
 }
 
 // ── Delete tag ──
+
+/**
+ * Deletes a tag after user confirmation.
+ * The tag will be removed from all associated notes.
+ * @param id - The tag ID to delete
+ * @param name - The tag name for the confirmation message
+ */
 async function deleteTag(id: string, name: string) {
   if (!confirm(`Delete tag "${name}"? It will be removed from all notes.`)) return
   await tagsStore.deleteTag(id)
@@ -78,6 +131,11 @@ async function deleteTag(id: string, name: string) {
 }
 
 // ── Navigate to filtered notes ──
+
+/**
+ * Navigates to the all-notes view filtered by the given tag.
+ * @param tag - The tag to filter by
+ */
 function viewTaggedNotes(tag: Tag) {
   router.push({ name: 'all-notes', query: { tag_id: tag.id } })
 }
@@ -100,7 +158,7 @@ function viewTaggedNotes(tag: Tag) {
       <UiEmpty icon="i-ph-tag" title="No tags" description="Create tags to categorize your notes." />
     </div>
 
-    <!-- Tag list -->
+    <!-- Tag list: each row shows color dot, name, note count, and edit/delete buttons -->
     <div v-else class="space-y-2">
       <div
         v-for="tag in tagsStore.tags"

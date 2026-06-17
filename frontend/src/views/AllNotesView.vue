@@ -1,4 +1,25 @@
 <script setup lang="ts">
+/**
+ * @component AllNotesView
+ * @description Displays a paginated list of all notes across notebooks,
+ * with optional filtering by tag via query parameter.
+ *
+ * Key features:
+ * - Paginated note list with "Load more" support
+ * - Tag filtering via `?tag_id=` query parameter
+ * - Archive, pin, and delete actions per note
+ * - Skeleton loading states and empty states
+ *
+ * @dependencies
+ * - useNotesStore: note data management
+ * - useTagsStore: tag data for filter indicator
+ * - useUiStore: toast notifications
+ * - NoteListItem: reusable note card component
+ *
+ * @example
+ * <!-- Route: /all-notes or /all-notes?tag_id=abc123 -->
+ * <AllNotesView />
+ */
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { notesApi } from '@/api/notes'
@@ -17,26 +38,40 @@ const notesStore = useNotesStore()
 const tagsStore = useTagsStore()
 const ui = useUiStore()
 
+/** Current page of notes */
 const notes = ref<Note[]>([])
+/** Whether notes are being loaded */
 const isLoading = ref(true)
+/** Total number of notes matching the current filter */
 const total = ref(0)
+/** Current page number for pagination */
 const page = ref(1)
+/** Number of notes per page */
 const pageSize = 20
+/** Whether more pages are available to load */
 const hasMore = ref(false)
 
+/** Tag ID from the query string, used to filter notes */
 const tagId = computed(() => (route.query.tag_id as string) || '')
+/** The full tag object for the active filter, if any */
 const activeTag = computed(() => tagsStore.tags.find(t => t.id === tagId.value))
 
+/** Fetch tags and notes on mount */
 onMounted(() => {
   tagsStore.fetchTags()
   fetchNotes()
 })
 
+/** Reset to page 1 and re-fetch when the tag filter changes */
 watch(tagId, () => {
   page.value = 1
   fetchNotes()
 })
 
+/**
+ * Fetches the first page of notes, optionally filtered by tag.
+ * Replaces the current notes list with the response items.
+ */
 async function fetchNotes() {
   isLoading.value = true
   try {
@@ -56,6 +91,10 @@ async function fetchNotes() {
   }
 }
 
+/**
+ * Loads the next page of notes and appends them to the list.
+ * Reverts the page number on failure.
+ */
 async function loadMore() {
   page.value++
   try {
@@ -73,15 +112,26 @@ async function loadMore() {
   }
 }
 
+/**
+ * Navigates to the note editor for the given note.
+ * @param note - The note to open
+ */
 function goToNote(note: Note) {
   router.push({ name: 'note-edit', params: { notebookId: note.notebook_id, noteId: note.id } })
 }
 
+/** Removes the tag filter by navigating to the base all-notes route */
 function clearTagFilter() {
   router.replace({ name: 'all-notes' })
 }
 
 // ── Archive / Pin / Delete actions ──
+
+/**
+ * Toggles the archive state of a note.
+ * Archived notes are removed from the list.
+ * @param note - The note to archive/unarchive
+ */
 async function toggleArchive(note: Note) {
   try {
     const newState = !note.is_archived
@@ -99,6 +149,10 @@ async function toggleArchive(note: Note) {
   }
 }
 
+/**
+ * Toggles the pin state of a note.
+ * @param note - The note to pin/unpin
+ */
 async function togglePin(note: Note) {
   try {
     const newState = !note.is_pinned
@@ -110,6 +164,11 @@ async function togglePin(note: Note) {
   }
 }
 
+/**
+ * Deletes a note after user confirmation.
+ * Removes the note from the list on success.
+ * @param note - The note to delete
+ */
 async function deleteNote(note: Note) {
   if (!confirm(`Delete "${note.title || 'Untitled'}"?`)) return
   try {
@@ -134,7 +193,7 @@ async function deleteNote(note: Note) {
       </div>
     </div>
 
-    <!-- Tag filter indicator -->
+    <!-- Tag filter indicator: shows active tag with clear button -->
     <div v-if="activeTag" class="flex items-center gap-2 mb-6">
       <span
         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
@@ -153,6 +212,7 @@ async function deleteNote(note: Note) {
       <span class="text-xs text-gray-400">{{ total }} notes</span>
     </div>
 
+    <!-- Note count when no tag filter is active -->
     <p v-else-if="!isLoading && notes.length > 0" class="text-sm text-gray-500 dark:text-gray-400 mb-6">
       {{ total }} {{ total === 1 ? 'note' : 'notes' }} total
     </p>
@@ -165,7 +225,7 @@ async function deleteNote(note: Note) {
       </div>
     </div>
 
-    <!-- Empty -->
+    <!-- Empty state: different messages for tag-filtered vs. unfiltered -->
     <div v-else-if="notes.length === 0" class="mt-16">
       <UiEmpty
         v-if="activeTag"
@@ -185,7 +245,7 @@ async function deleteNote(note: Note) {
       />
     </div>
 
-    <!-- Note list -->
+    <!-- Note list with archive/pin/delete actions -->
     <div v-else class="space-y-2">
       <NoteListItem
         v-for="note in notes"

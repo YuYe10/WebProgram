@@ -1,3 +1,10 @@
+"""Notebook service module.
+
+Provides CRUD operations for notebooks with ownership enforcement and
+duplicate-name validation.  Each notebook response includes a computed
+``note_count`` derived from an outer join against the notes table.
+"""
+
 import uuid
 
 from sqlalchemy import func, select
@@ -10,9 +17,33 @@ from app.schemas.notebook import NotebookCreate, NotebookResponse, NotebookUpdat
 
 
 class NotebookService:
+    """Service for notebook CRUD operations.
+
+    Responsibilities:
+        - Listing notebooks with aggregated note counts.
+        - Creating notebooks with duplicate-name checks.
+        - Updating notebooks with ownership and uniqueness validation.
+        - Deleting notebooks with ownership enforcement.
+    """
+
     async def list_notebooks(
         self, db: AsyncSession, user_id: uuid.UUID, archived: bool = False
     ) -> list[NotebookResponse]:
+        """List notebooks for a user with note counts.
+
+        Uses a LEFT OUTER JOIN against notes to compute each notebook's
+        note count in a single query.  Results are ordered by manual
+        sort_order first, then by last-updated time.
+
+        Args:
+            db: Async database session.
+            user_id: UUID of the authenticated user.
+            archived: Whether to list archived (True) or active (False)
+                notebooks.  Defaults to active.
+
+        Returns:
+            List of NotebookResponse objects including note_count.
+        """
         stmt = (
             select(Notebook, func.count(Note.id).label("note_count"))
             .outerjoin(Note, Notebook.id == Note.notebook_id)
@@ -33,10 +64,25 @@ class NotebookService:
         ]
 
     async def get_notebook(self, db: AsyncSession, notebook_id: uuid.UUID, user_id: uuid.UUID) -> NotebookResponse:
+        """Retrieve a single notebook by ID with ownership verification.
+
+        Args:
+            db: Async database session.
+            notebook_id: UUID of the notebook to retrieve.
+            user_id: UUID of the authenticated user.
+
+        Returns:
+            NotebookResponse including the current note_count.
+
+        Raises:
+            NotFoundException: If the notebook does not exist.
+            ForbiddenException: If the notebook does not belong to the user.
+        """
         result = await db.execute(select(Notebook).where(Notebook.id == notebook_id))
         nb = result.scalar_one_or_none()
         if not nb:
             raise NotFoundException("Notebook not found")
+        # Ownership check: users may only access their own notebooks
         if nb.user_id != user_id:
             raise ForbiddenException("Access denied")
 
@@ -53,6 +99,24 @@ class NotebookService:
         )
 
     async def create(self, db: AsyncSession, user_id: uuid.UUID, data: NotebookCreate) -> NotebookResponse:
+        """Create a new notebook.
+
+        Enforces that the user does not already have a notebook with the
+        same name to avoid ambiguity.
+
+        Args:
+            db: Async database session.
+            user_id: UUID of the authenticated user.
+            data: Notebook creation payload (name, description, icon, color,
+                sort_order).
+
+        Returns:
+            NotebookResponse for the newly created notebook (note_count = 0).
+
+        Raises:
+            ConflictException: If a notebook with the same name already exists
+                for this user.
+        """
         # Check for duplicate name
         dup_result = await db.execute(
             select(Notebook).where(Notebook.user_id == user_id, Notebook.name == data.name)
@@ -74,6 +138,27 @@ class NotebookService:
     async def update(
         self, db: AsyncSession, notebook_id: uuid.UUID, user_id: uuid.UUID, data: NotebookUpdate
     ) -> NotebookResponse:
+        """Update a notebook with partial data.
+
+        Only fields explicitly set by the client are applied.  If the name
+        is being changed, a duplicate-name check is performed against the
+        user's other notebooks.
+
+        Args:
+            db: Async database session.
+            notebook_id: UUID of the notebook to update.
+            user_id: UUID of the authenticated user.
+            data: Partial update payload (only set fields are applied).
+
+        Returns:
+            NotebookResponse reflecting the updated state.
+
+        Raises:
+            NotFoundException: If the notebook does not exist.
+            ForbiddenException: If the notebook does not belong to the user.
+            ConflictException: If the new name conflicts with another notebook
+                owned by the same user.
+        """
         result = await db.execute(select(Notebook).where(Notebook.id == notebook_id))
         nb = result.scalar_one_or_none()
         if not nb:
@@ -102,6 +187,20 @@ class NotebookService:
         return await self.get_notebook(db, notebook_id, user_id)
 
     async def delete(self, db: AsyncSession, notebook_id: uuid.UUID, user_id: uuid.UUID) -> None:
+        """Delete a notebook.
+
+        Cascading deletes at the database level will remove associated notes
+        and their tag associations.
+
+        Args:
+            db: Async database session.
+            notebook_id: UUID of the notebook to delete.
+            user_id: UUID of the authenticated user.
+
+        Raises:
+            NotFoundException: If the notebook does not exist.
+            ForbiddenException: If the notebook does not belong to the user.
+        """
         result = await db.execute(select(Notebook).where(Notebook.id == notebook_id))
         nb = result.scalar_one_or_none()
         if not nb:

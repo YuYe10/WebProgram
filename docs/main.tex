@@ -36,15 +36,10 @@
   xrightmargin=2pt,
 }
 
-\definecolor{brand}{RGB}{99,102,241}
-\definecolor{brandlight}{RGB}{238,242,255}
-
-\title{\vspace{-1em}{\textbf{Noteworthy}}\\[4pt]
-{\large 轻量化在线笔记应用 --- 项目说明文档}\\[2pt]
-{\small\color{gray} 前后端分离 \textbullet\ 富文本编辑 \textbullet\ JWT 认证 \textbullet\ 响应式设计}}
+\title{Noteworthy 轻量化在线笔记软件\\项目说明文档}
 \author{
-  姓名：XXX \quad 学号：XXXXXXXX \\[2pt]
-  选题方向：Web 全栈应用开发
+  俞烨 \quad 学号 102301116 \\[2pt]
+  选题方向：在线笔记软件
 }
 \date{\today}
 
@@ -55,30 +50,36 @@
 \newpage
 
 % ============================================================
-\section{项目基本信息}
+\section{范围}
 % ============================================================
 
-\begin{itemize}[leftmargin=1.5em,itemsep=2pt]
-  \item \textbf{项目名称}：Noteworthy --- 轻量化在线笔记软件
-  \item \textbf{选题方向}：Web 全栈应用开发
-  \item \textbf{作者}：XXX \quad \textbf{学号}：XXXXXXXX
-\end{itemize}
+\subsection{标识}
 
-\subsection{运行方式}
+项目名称为 Noteworthy，版本号 1.0，属于轻量化在线笔记软件类别。
 
-\textbf{前置依赖}：Docker \& Docker Compose、Python 3.10+、Node.js 18+
+\subsection{项目概述}
+
+Noteworthy 是一个面向个人知识管理场景的在线笔记平台，提供从信息采集、组织到检索的完整笔记工作流。系统采用前后端分离架构，后端提供 RESTful API，前端为单页应用，通过 JWT 实现无状态认证。
+
+该项目的核心特色包括：前后端完全自主开发，数据主权可控；基于 ProseMirror 内核的 Tiptap 编辑器提供专业级富文本编辑能力，支持 15 种以上扩展与代码语法高亮；采用 BCrypt 12 轮密码哈希配合 JWT 双令牌无感续期与用户级数据隔离，安全机制对标生产环境标准；双层图片清理策略配合归档笔记自动过期机制，有效解决服务器存储泄漏问题。
+
+\subsection{运行说明}
+
+运行环境要求 Docker 与 Docker Compose、Python 3.10 及以上版本、Node.js 18 及以上版本。
+
+启动步骤如下：
 
 \begin{enumerate}[itemsep=2pt]
-  \item \textbf{启动数据库}：\lstinline|docker compose up -d db|
-  \item \textbf{启动后端}：
+  \item 启动数据库，执行 \lstinline|docker compose up -d db|
+  \item 启动后端服务：
 \begin{lstlisting}[language=bash]
 cd backend && cp .env.example .env
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt && alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 \end{lstlisting}
-  访问 \url{http://localhost:8000/docs} 查看 Swagger API 文档。
-  \item \textbf{启动前端}：
+  访问 \url{http://localhost:8000/docs} 可查看 Swagger API 文档。
+  \item 启动前端服务：
 \begin{lstlisting}[language=bash]
 cd frontend && npm install && npm run dev
 \end{lstlisting}
@@ -86,70 +87,35 @@ cd frontend && npm install && npm run dev
 \end{enumerate}
 
 % ============================================================
-\section{产品概述}
+\section{总体设计}
 % ============================================================
 
-\subsection{产品定位}
-
-Noteworthy 定位为\textbf{轻量化、高可用的在线笔记平台}，面向个人知识管理场景，提供从采集、组织到检索的完整笔记工作流。与同类产品相比，其核心差异化优势在于：
-
-\begin{itemize}[leftmargin=1.5em,itemsep=1pt]
-  \item \textbf{全栈自研}：前后端完全自主开发，无第三方笔记服务依赖，数据主权可控。
-  \item \textbf{专业编辑体验}：基于 ProseMirror 内核的 Tiptap 编辑器，支持 15+ 富文本扩展、代码语法高亮与图片上传，编辑能力远超 Markdown 纯文本方案。
-  \item \textbf{企业级安全}：BCrypt(12 rounds) 密码哈希 + JWT 双令牌无感续期 + 用户级数据隔离，安全机制对标生产环境标准。
-  \item \textbf{智能资源管理}：双层图片清理策略（即时 + 定时兜底）与归档笔记自动过期，解决服务器存储泄漏问题。
-\end{itemize}
-
-\subsection{功能全景}
-
-\begin{table}[h]
-\centering
-\small
-\begin{tabularx}{\textwidth}{lX}
-\toprule
-\textbf{功能域} & \textbf{能力描述} \\
-\midrule
-用户认证 & 注册/登录、JWT 双令牌鉴权、令牌自动刷新、导航守卫 \\
-笔记本管理 & 创建/重命名/删除、自定义图标与颜色、拖拽排序、归档 \\
-笔记编辑 & Tiptap 富文本（15+ 扩展）、3s 防抖自动保存、\texttt{Ctrl+S} 手动保存、字数统计 \\
-笔记组织 & 置顶、归档/恢复、标签多对多关联、跨笔记本聚合视图 \\
-图片系统 & 上传（$\leq$5\,MB，5 种格式）、即时孤立清理 + 定时全量扫描、归档 $>$7\,天自动删除 \\
-全文搜索 & 标题 + 纯文本 ILIKE 模糊匹配、按笔记本过滤、分页 \\
-UI/UX & 玻璃拟态设计、深色模式、响应式三端适配、骨架屏 + Toast + 页面过渡动画 \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-% ============================================================
-\section{技术架构}
-% ============================================================
-
-\subsection{技术选型与决策}
+\subsection{技术选型}
 
 \begin{table}[h]
 \centering
 \small
 \begin{tabularx}{\textwidth}{llX}
 \toprule
-\textbf{层面} & \textbf{技术} & \textbf{选型理由} \\
+层面 & 技术 & 选型理由 \\
 \midrule
-前端框架 & Vue 3 + TS & Composition API + \texttt{<script setup>} 简洁高效；TypeScript 全量类型覆盖 \\
-构建工具 & Vite 6 & 原生 ESM HMR，冷启动 $<$300\,ms，较 Webpack 提升 10--100$\times$ \\
-状态管理 & Pinia & Vue 3 官方推荐，Setup Stores 与 Composition API 风格统一，TS 推导完善 \\
-样式方案 & UnoCSS & 原子化按需生成，零运行时开销；兼容 Tailwind 生态 \\
-富文本 & Tiptap & ProseMirror 内核，可扩展架构支持表格/代码高亮/任务列表等企业级功能 \\
-后端框架 & FastAPI & async/await 原生、自动 OpenAPI 文档、Pydantic v2 校验性能提升 5--50$\times$ \\
-ORM & SQLAlchemy 2.0 & 声明式映射 + \texttt{select()} 风格 + 异步引擎，2.0 重写后类型提示完备 \\
-数据库 & PostgreSQL 16 & JSONB 原生存储 Tiptap 文档、\texttt{pg\_trgm} 三字符索引加速模糊搜索 \\
-认证 & JWT 双令牌 & Access(30\,min) + Refresh(7\,d)，无状态鉴权，水平扩展友好 \\
-容器化 & Docker Compose & \texttt{postgres:16-alpine} 镜像，\texttt{healthcheck} 就绪探针保障启动顺序 \\
+前端框架 & Vue 3 + TypeScript & 采用 Composition API 与 script setup 语法，开发体验简洁高效，TypeScript 提供全量类型覆盖 \\
+构建工具 & Vite 6 & 原生 ESM 热更新，冷启动低于 300\,ms，较 Webpack 提升 10 至 100 倍 \\
+状态管理 & Pinia & Vue 3 官方推荐方案，Setup Stores 与 Composition API 风格统一，TypeScript 类型推导完善 \\
+样式方案 & UnoCSS & 原子化按需生成，零运行时开销，兼容 Tailwind 生态 \\
+富文本 & Tiptap & 基于 ProseMirror 内核，可扩展架构支持表格、代码高亮、任务列表等企业级功能 \\
+后端框架 & FastAPI & 原生支持 async/await，自动生成 OpenAPI 文档，Pydantic v2 数据校验性能提升 5 至 50 倍 \\
+ORM & SQLAlchemy 2.0 & 声明式映射配合 select 风格查询与异步引擎，2.0 版本类型提示完备 \\
+数据库 & PostgreSQL 16 & JSONB 原生存储 Tiptap 文档，pg\_trgm 三字符索引加速模糊搜索 \\
+认证 & JWT 双令牌 & Access 令牌有效期 30 分钟，Refresh 令牌有效期 7 天，无状态鉴权有利于水平扩展 \\
+容器化 & Docker Compose & 采用 postgres:16-alpine 镜像，healthcheck 就绪探针保障启动顺序 \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \subsection{系统架构}
 
-后端采用\textbf{四层分离}架构，严格遵循单一职责原则：
+后端采用四层分离架构，严格遵循单一职责原则，各层职责如下：
 
 \begin{center}
 \begin{tikzpicture}[
@@ -157,10 +123,10 @@ ORM & SQLAlchemy 2.0 & 声明式映射 + \texttt{select()} 风格 + 异步引擎
   >=Stealth,
   node distance=0.35cm
 ]
-  \node[layer, fill=blue!8]   (route) {Router 层 --- HTTP 请求处理、参数校验、依赖注入};
-  \node[layer, fill=green!8,  below=of route] (service) {Service 层 --- 业务逻辑、权限校验、数据编排};
-  \node[layer, fill=orange!8, below=of service] (repo) {Repository 层 --- 泛型 CRUD、分页查询、数据访问抽象};
-  \node[layer, fill=red!8,    below=of repo] (model) {Model 层 --- SQLAlchemy ORM 映射、关系定义、约束声明};
+  \node[layer, fill=blue!8]   (route) {Router 层，负责 HTTP 请求处理、参数校验与依赖注入};
+  \node[layer, fill=green!8,  below=of route] (service) {Service 层，负责业务逻辑、权限校验与数据编排};
+  \node[layer, fill=orange!8, below=of service] (repo) {Repository 层，负责泛型 CRUD、分页查询与数据访问抽象};
+  \node[layer, fill=red!8,    below=of repo] (model) {Model 层，负责 SQLAlchemy ORM 映射、关系定义与约束声明};
 
   \draw[->, thick] (route) -- (service);
   \draw[->, thick] (service) -- (repo);
@@ -168,11 +134,11 @@ ORM & SQLAlchemy 2.0 & 声明式映射 + \texttt{select()} 风格 + 异步引擎
 \end{tikzpicture}
 \end{center}
 
-前端按功能域组织：\textbf{API 模块}封装接口调用与令牌刷新拦截器，\textbf{Pinia Store}管理响应式状态，\textbf{View}负责声明式渲染，\textbf{UI 组件库}提供一致的设计系统。
+前端按功能域组织，API 模块封装接口调用与令牌刷新拦截器，Pinia Store 管理响应式状态，View 负责声明式渲染，UI 组件库提供一致的设计系统。
 
 \subsection{数据模型}
 
-系统共 5 张表，核心实体关系如下：
+系统共包含 5 张数据表，核心实体关系如下：
 
 \begin{center}
 \begin{tikzpicture}[
@@ -201,78 +167,93 @@ ORM & SQLAlchemy 2.0 & 声明式映射 + \texttt{select()} 风格 + 异步引擎
 \scriptsize
 \begin{tabularx}{\textwidth}{llX}
 \toprule
-\textbf{表} & \textbf{关键字段} & \textbf{设计要点} \\
+表名 & 关键字段 & 设计要点 \\
 \midrule
-users & id(UUID), username, email, hashed\_password & UUID 主键防枚举；username/email 唯一索引 \\
-notebooks & id, user\_id(FK), name, icon, color, sort\_order & CASCADE 级联删除笔记；sort\_order 支持自定义排序 \\
-notes & id, notebook\_id(FK), user\_id(FK), content(JSONB), plain\_text, is\_pinned, is\_archived & JSONB 存储 Tiptap 文档；plain\_text 冗余字段加速搜索 \\
-tags & id, user\_id(FK), name, color & (user\_id, name) 联合唯一约束防重复 \\
-note\_tags & note\_id(PK), tag\_id(PK) & 多对多关联表，双主键 + CASCADE \\
+users & id, username, email, hashed\_password & 采用 UUID 主键防止枚举攻击，username 与 email 建立唯一索引 \\
+notebooks & id, user\_id, name, icon, color, sort\_order & 通过 CASCADE 级联删除笔记，sort\_order 字段支持自定义排序 \\
+notes & id, notebook\_id, user\_id, content, plain\_text, is\_pinned, is\_archived & content 字段使用 JSONB 类型存储 Tiptap 文档，plain\_text 冗余字段用于加速搜索 \\
+tags & id, user\_id, name, color & user\_id 与 name 建立联合唯一约束以防止重复 \\
+note\_tags & note\_id, tag\_id & 多对多关联表，采用双主键与 CASCADE 删除策略 \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 % ============================================================
-\section{核心功能实现}
+\section{详细设计}
 % ============================================================
 
-\subsection{JWT 双令牌认证}
+\subsection{功能规格}
 
-\begin{enumerate}[leftmargin=1.5em,itemsep=2pt]
-  \item \textbf{签发}：登录成功后签发 Access Token（30\,min）与 Refresh Token（7\,d），均使用 HS256 算法，payload 含 \texttt{sub}/\texttt{iat}/\texttt{exp}/\texttt{type} 声明。
-  \item \textbf{鉴权}：请求经 \texttt{get\_current\_user} 依赖注入解析 Access Token，校验 \texttt{type="access"} 及有效期，注入用户对象至路由函数。
-  \item \textbf{无感续期}：前端 Axios 响应拦截器捕获 401 后，以 Refresh Token 调用 \texttt{/auth/refresh} 获取新令牌对。\textbf{并发控制}：首个 401 触发刷新，其余请求入队等待，刷新完成后统一重试，避免竞态导致 Token 失效。
-  \item \textbf{数据隔离}：所有 Service 层查询均携带 \texttt{user\_id} 条件，确保用户间数据物理隔离。
-\end{enumerate}
+\begin{table}[h]
+\centering
+\small
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+功能域 & 能力描述 \\
+\midrule
+用户认证 & 支持注册与登录，采用 JWT 双令牌鉴权机制，实现令牌自动刷新与导航守卫 \\
+笔记本管理 & 支持创建、重命名与删除，提供自定义图标与颜色配置，支持拖拽排序与归档 \\
+笔记编辑 & 集成 Tiptap 富文本编辑器含 15 种以上扩展，实现 3 秒防抖自动保存与 Ctrl+S 手动保存，提供字数统计 \\
+笔记组织 & 支持置顶、归档与恢复，实现标签多对多关联与跨笔记本聚合视图 \\
+图片系统 & 支持上传且限制 5\,MB 以内的 5 种图片格式，提供即时孤立清理与定时全量扫描，归档超过 7 天的笔记自动删除 \\
+全文搜索 & 基于标题与纯文本的 ILIKE 模糊匹配，支持按笔记本过滤与分页 \\
+UI/UX & 采用玻璃拟态设计风格，支持深色模式与响应式三端适配，提供骨架屏、Toast 通知与页面过渡动画 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{用户认证与授权}
+
+系统采用 JWT 双令牌认证机制。用户登录成功后，后端签发 Access Token 与 Refresh Token，均使用 HS256 算法签名，payload 包含 sub、iat、exp 与 type 四项声明。Access Token 有效期为 30 分钟，用于接口鉴权；Refresh Token 有效期为 7 天，用于无感续期。
+
+鉴权流程中，请求经由 get\_current\_user 依赖注入解析 Access Token，校验 type 字段为 access 且未过期，随后将用户对象注入路由函数。前端 Axios 响应拦截器在捕获 401 状态码后，自动以 Refresh Token 调用 /auth/refresh 接口获取新令牌对。针对并发场景，拦截器实现了请求队列机制，首个 401 请求持有刷新权，其余请求以 Promise 入队等待，刷新完成后统一重试，从而避免竞态导致 Token 失效。所有 Service 层查询均携带 user\_id 条件，确保用户间数据物理隔离。
 
 \subsection{富文本编辑器}
 
-基于 Tiptap（ProseMirror 内核）构建，集成 15+ 扩展：
+编辑器基于 Tiptap 构建，其底层采用 ProseMirror 文档模型，集成了 15 种以上扩展：
 
 \noindent\begin{minipage}[t]{0.48\textwidth}
 \begin{itemize}[leftmargin=1em,itemsep=0pt,font=\scriptsize]
-  \item StarterKit（段落/标题/列表/引用/代码）
-  \item CodeBlockLowlight（lowlight 语法高亮）
-  \item Table + TableRow/Cell/Header
-  \item TaskList + TaskItem（嵌套）
-  \item Image（服务端上传，非 Base64）
+  \item StarterKit，包含段落、标题、列表、引用与代码
+  \item CodeBlockLowlight，实现 lowlight 语法高亮
+  \item Table 及 TableRow、TableCell、TableHeader
+  \item TaskList 与 TaskItem，支持嵌套
+  \item Image，采用服务端上传而非 Base64 内嵌
 \end{itemize}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.48\textwidth}
 \begin{itemize}[leftmargin=1em,itemsep=0pt,font=\scriptsize]
-  \item TextStyle + Color（16 色预设 + 拾色器）
-  \item Highlight / Underline / Link
-  \item Typography / Placeholder
-  \item CharacterCount（实时字数统计）
-  \item 自定义 CodeBlockWithLabel（语言标签）
+  \item TextStyle 与 Color，提供 16 色预设与拾色器
+  \item Highlight、Underline 与 Link
+  \item Typography 与 Placeholder
+  \item CharacterCount，实现实时字数统计
+  \item 自定义 CodeBlockWithLabel，显示语言标签
 \end{itemize}
 \end{minipage}
 
 \vspace{4pt}
-\textbf{保存策略}：编辑器 \texttt{onUpdate} 触发 3\,s 防抖定时器，标题变更同样触发；\texttt{Ctrl+S} 立即保存；组件卸载时若 \texttt{isDirty} 则兜底保存。状态栏三态指示：\textcolor{green!60!black}{\textbf{Saved}} / \textcolor{orange!80!black}{\textbf{Unsaved}} / \textcolor{yellow!80!orange}{\textbf{Saving...}}。
+保存策略方面，编辑器 onUpdate 事件触发 3 秒防抖定时器，标题变更同样触发保存流程；Ctrl+S 快捷键可立即保存；组件卸载时若 isDirty 状态为真则执行兜底保存。状态栏提供三态指示，分别为 Saved、Unsaved 与 Saving。
 
 \subsection{图片生命周期管理}
 
-\begin{enumerate}[leftmargin=1.5em,itemsep=2pt]
-  \item \textbf{上传}：\texttt{POST /uploads/images}，校验 Content-Type（JPEG/PNG/GIF/WebP/SVG）与大小（$\leq$5\,MB），UUID 重命名存储至 \texttt{uploads/}，返回 \texttt{/uploads/<filename>} URL。
-  \item \textbf{即时清理}：笔记更新时 diff 新旧 content 中的图片引用集合，删除不再被引用的文件；笔记删除时同步清理关联图片。
-  \item \textbf{定时兜底}：后台 \texttt{cleanup\_loop} 每小时全量扫描：(a) 删除 \texttt{uploads/} 中未被任何 note 引用的文件；(b) 删除 \texttt{archived\_at} 超过 7 天的归档笔记及其标签关联。
-\end{enumerate}
+图片上传通过 POST /uploads/images 接口完成，后端校验 Content-Type 为 JPEG、PNG、GIF、WebP 或 SVG 格式，且文件大小不超过 5\,MB，随后以 UUID 重命名存储至 uploads 目录，返回 /uploads/filename 形式的 URL。
+
+即时清理机制在笔记更新时对比新旧 content 中的图片引用集合，删除不再被引用的文件；笔记删除时同步清理关联图片。定时兜底机制由后台 cleanup\_loop 异步任务每小时执行一次全量扫描，删除 uploads 目录中未被任何 note 引用的文件，同时删除 archived\_at 字段超过 7 天的归档笔记及其标签关联。
 
 \subsection{全文搜索}
 
-笔记创建/更新时，后端递归遍历 Tiptap JSON 提取 \texttt{type="text"} 节点，拼接为 \texttt{plain\_text} 冗余字段。搜索接口基于 \texttt{ILIKE} 对 \texttt{title} 和 \texttt{plain\_text} 进行模式匹配，支持按 \texttt{notebook\_id} 过滤与分页。数据库初始化时已启用 \texttt{pg\_trgm} 扩展，可平滑升级为三字符索引加速。
+笔记创建或更新时，后端递归遍历 Tiptap JSON 文档，提取 type 为 text 的节点，拼接为 plain\_text 冗余字段。搜索接口基于 ILIKE 对 title 和 plain\_text 字段进行模式匹配，支持按 notebook\_id 过滤与分页。数据库初始化时已启用 pg\_trgm 扩展，后续可平滑升级为三字符索引加速方案。
 
 % ============================================================
-\section{技术挑战与解决方案}
+\section{技术难点与对策}
 % ============================================================
 
-\textbf{挑战 1：JWT 并发刷新竞态}。SPA 中多个异步请求同时收到 401 时，若各自独立刷新令牌，后到的刷新请求会使先前的 Refresh Token 失效。\textbf{方案}：在 Axios 拦截器中实现\textbf{请求队列}模式——设置 \texttt{isRefreshing} 互斥标志，首个 401 持有刷新权，其余以 Promise 入队；刷新成功后 \texttt{processQueue(null, newToken)} 统一重试，失败则全部拒绝并登出，O(1) 额外开销。
+难点一为 JWT 并发刷新竞态问题。在单页应用中，多个异步请求同时收到 401 状态码时，若各自独立刷新令牌，后到的刷新请求会使先前的 Refresh Token 失效，导致其他请求永久失败。对策是在 Axios 拦截器中实现请求队列模式，设置 isRefreshing 互斥标志，首个 401 请求持有刷新权，其余请求以 Promise 入队等待；刷新成功后调用 processQueue 统一重试，失败则全部拒绝并执行登出操作，额外内存开销为常数级。
 
-\textbf{挑战 2：服务器图片存储泄漏}。用户删除笔记或移除图片后，文件系统残留无人引用的图片。\textbf{方案}：双层清理——(1) \textbf{即时层}：\texttt{NoteService.update/delete} 中 diff 新旧 content 图片集合，立即删除孤立文件；(2) \textbf{兜底层}：\texttt{cleanup\_loop} 每小时全量扫描，删除无主文件与归档超 7 天的笔记。两层互补确保零泄漏。
+难点二为服务器图片存储泄漏问题。用户删除笔记或编辑移除图片后，文件系统可能残留无人引用的图片文件，长期运行将耗尽磁盘空间。对策是采用双层清理策略，即时层在 NoteService 的 update 与 delete 方法中对比新旧 content 的图片集合，立即删除孤立文件；兜底层由 cleanup\_loop 异步任务每小时全量扫描，比对 uploads 目录与所有 note content 中的引用，删除无主文件与归档超过 7 天的笔记。两层互补，确保零泄漏。
 
 % ============================================================
-\section{项目结构与 API}
+\section{程序结构与接口}
 % ============================================================
 
 \begin{lstlisting}[language={}]
@@ -281,7 +262,7 @@ WebProgram/
 +-- docker/init.sql             # uuid-ossp + pg_trgm
 +-- backend/app/
 |   +-- main.py                 # FastAPI app factory & lifespan
-|   +-- api/v1/                 # Routers (auth, notebooks, notes, tags, search, uploads)
+|   +-- api/v1/                 # Routers (auth, notebooks, notes, ...)
 |   +-- core/                   # config, security, database, exceptions
 |   +-- models/                 # ORM (User, Notebook, Note, Tag, NoteTag)
 |   +-- schemas/                # Pydantic v2 schemas
@@ -292,58 +273,52 @@ WebProgram/
 |   +-- components/{ui,layout}  # Design system + layout
 |   +-- layouts/                # DefaultLayout, AuthLayout
 |   +-- router/                 # Vue Router + authGuard
-|   +-- stores/                 # Pinia (auth, notes, notebooks, tags, editor, ui)
+|   +-- stores/                 # Pinia (auth, notes, notebooks, ...)
 |   +-- views/                  # 10 page views
 +-- docs/                       # Project documentation
 \end{lstlisting}
 
-后端采用\textbf{路由 $\to$ 服务 $\to$ 仓库 $\to$ 模型}四层架构，前端按功能域组织。系统共暴露 16 个 API 端点：
+后端采用路由、服务、仓库、模型四层架构，前端按功能域组织。系统共暴露 16 个 API 端点：
 
 \begin{table}[h]
 \centering
 \scriptsize
 \begin{tabularx}{\textwidth}{llX}
 \toprule
-\textbf{方法} & \textbf{路径} & \textbf{说明} \\
+方法 & 路径 & 说明 \\
 \midrule
 POST & /api/v1/auth/register & 用户注册，返回双令牌 \\
-POST & /api/v1/auth/login & 登录，BCrypt 校验 \\
+POST & /api/v1/auth/login & 用户登录，BCrypt 校验 \\
 POST & /api/v1/auth/refresh & 刷新令牌对 \\
 GET  & /api/v1/auth/me & 当前用户信息 \\
-GET/POST & /api/v1/notebooks & 笔记本列表/创建 \\
-GET/PUT/DELETE & /api/v1/notebooks/\{id\} & 笔记本 CRUD \\
-GET/POST & /api/v1/notebooks/\{id\}/notes & 笔记列表/创建 \\
-GET/PUT/DELETE & /api/v1/notes/\{id\} & 笔记 CRUD \\
-PATCH & /api/v1/notes/\{id\}/pin & 置顶/取消 \\
-PATCH & /api/v1/notes/\{id\}/archive & 归档/恢复 \\
-POST/DELETE & /api/v1/notes/\{id\}/tags & 附加/移除标签 \\
-GET/POST & /api/v1/tags & 标签列表/创建 \\
-PUT/DELETE & /api/v1/tags/\{id\} & 标签更新/删除 \\
-GET  & /api/v1/search?q=\textit{kw} & 全文搜索 \\
+GET/POST & /api/v1/notebooks & 笔记本列表与创建 \\
+GET/PUT/DELETE & /api/v1/notebooks/\{id\} & 笔记本增删改查 \\
+GET/POST & /api/v1/notebooks/\{id\}/notes & 笔记列表与创建 \\
+GET/PUT/DELETE & /api/v1/notes/\{id\} & 笔记增删改查 \\
+PATCH & /api/v1/notes/\{id\}/pin & 置顶与取消置顶 \\
+PATCH & /api/v1/notes/\{id\}/archive & 归档与恢复 \\
+POST/DELETE & /api/v1/notes/\{id\}/tags & 附加与移除标签 \\
+GET/POST & /api/v1/tags & 标签列表与创建 \\
+PUT/DELETE & /api/v1/tags/\{id\} & 标签更新与删除 \\
+GET  & /api/v1/search?q=kw & 全文搜索 \\
 POST & /api/v1/uploads/images & 图片上传 \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 % ============================================================
-\section{学习总结与自我评估}
+\section{总结与评估}
 % ============================================================
 
 \subsection{学习收获}
 
-\begin{itemize}[leftmargin=1.5em,itemsep=0pt]
-  \item 掌握前后端分离全栈开发完整流程：ER 设计、Alembic 迁移、RESTful API、SPA 交互。
-  \item 深入理解 JWT 认证体系：双令牌策略、并发刷新队列、依赖注入鉴权、数据隔离。
-  \item 实践 ProseMirror 文档模型：Tiptap 扩展机制、JSONB 存储、纯文本提取与搜索。
-  \item 积累异步编程经验：SQLAlchemy 2.0 async、FastAPI async routes、asyncio 后台任务。
-  \item 工程化能力提升：泛型 Repository、双层资源清理、Axios 拦截器设计。
-\end{itemize}
+通过本项目，掌握了前后端分离全栈开发的完整流程，涵盖 ER 设计、Alembic 迁移、RESTful API 开发与 SPA 交互实现。深入理解了 JWT 认证体系，包括双令牌策略、并发刷新队列、依赖注入鉴权与数据隔离机制。实践了 ProseMirror 文档模型，理解了 Tiptap 扩展机制、JSONB 存储策略与纯文本提取搜索优化方案。积累了异步编程经验，涉及 SQLAlchemy 2.0 异步会话、FastAPI 异步路由与 asyncio 后台任务。工程化能力方面，掌握了泛型 Repository 模式、双层资源清理策略与 Axios 拦截器设计方法。
 
 \subsection{完成度评估}
 
-全部 7 个功能模块均已实现（用户认证、笔记本 CRUD、笔记 CRUD、富文本编辑器、图片系统、搜索与标签、UI/UX），代码结构清晰，API 文档自动生成。
+全部 7 个功能模块均已实现，包括用户认证、笔记本增删改查、笔记增删改查、富文本编辑器、图片系统、搜索与标签以及 UI/UX。代码结构清晰，API 文档自动生成。
 
-\textbf{未来演进方向}：\texttt{tsvector} 全文搜索 + GIN 索引替代 ILIKE；WebSocket 实时通知；笔记导出 Markdown/PDF；协作编辑（CRDT/OT）。
+未来演进方向包括采用 tsvector 全文搜索配合 GIN 索引替代 ILIKE 以提升检索性能，引入 WebSocket 实现实时通知与多端同步，增加笔记导出为 Markdown 或 PDF 的功能，以及基于 CRDT 或 OT 算法实现协作编辑。
 
 % ============================================================
 \section{原创性声明与引用}
@@ -351,6 +326,14 @@ POST & /api/v1/uploads/images & 图片上传 \\
 
 本项目为个人独立完成的设计与开发作品，所有核心代码均为原创。
 
-\textbf{主要开源依赖}：Vue 3 (\url{https://vuejs.org/})、Pinia (\url{https://pinia.vuejs.org/})、FastAPI (\url{https://fastapi.tiangolo.com/})、SQLAlchemy (\url{https://www.sqlalchemy.org/})、Tiptap (\url{https://tiptap.dev/})、UnoCSS (\url{https://unocss.dev/})、Phosphor Icons (\url{https://phosphoricons.com/})、lowlight (\url{https://github.com/wooorm/lowlight})
+主要开源依赖如下：
+Vue 3，见 \url{https://vuejs.org/}；
+Pinia，见 \url{https://pinia.vuejs.org/}；
+FastAPI，见 \url{https://fastapi.tiangolo.com/}；
+SQLAlchemy，见 \url{https://www.sqlalchemy.org/}；
+Tiptap，见 \url{https://tiptap.dev/}；
+UnoCSS，见 \url{https://unocss.dev/}；
+Phosphor Icons，见 \url{https://phosphoricons.com/}；
+lowlight，见 \url{https://github.com/wooorm/lowlight}。
 
 \end{document}

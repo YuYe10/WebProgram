@@ -1,4 +1,27 @@
 <script setup lang="ts">
+/**
+ * @component SearchView
+ * @description Full-text search view for notes with debounced query input
+ * and optional notebook filtering.
+ *
+ * Key features:
+ * - Debounced search (300ms) to avoid excessive API calls
+ * - Notebook filter via dropdown selector
+ * - Active filter indicator with clear button
+ * - Archive, pin, and delete actions on search results
+ * - Skeleton loading and empty states
+ *
+ * @dependencies
+ * - searchApi: performs full-text search queries
+ * - useNotebooksStore: provides notebooks for the filter dropdown
+ * - useUiStore: toast notifications
+ * - useDebounceFn (VueUse): debounced search execution
+ * - NoteListItem: reusable note card component
+ *
+ * @example
+ * <!-- Route: /search?q=keyword&notebook_id=abc123 -->
+ * <SearchView />
+ */
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { searchApi } from '@/api/search'
@@ -18,26 +41,42 @@ const router = useRouter()
 const notebooksStore = useNotebooksStore()
 const ui = useUiStore()
 
+/** Search query string, initialized from URL query param */
 const query = ref((route.query.q as string) || '')
+/** Notebook ID filter, initialized from URL query param */
 const notebookId = ref((route.query.notebook_id as string) || '')
+/** Search result notes */
 const results = ref<Note[]>([])
+/** Whether a search request is in progress */
 const isLoading = ref(false)
+/** Total number of matching results */
 const total = ref(0)
 
+/** The notebook object for the active filter, if any */
 const selectedNotebook = computed(() =>
   notebooksStore.notebooks.find(n => n.id === notebookId.value)
 )
 
+/** Fetch notebooks for the filter dropdown on mount */
 onMounted(() => {
   notebooksStore.fetchNotebooks()
 })
 
+/**
+ * Computed description for the empty state, including
+ * the search query and optional notebook name.
+ */
 const emptyDescription = computed(() => {
   const parts = [`No notes found for "${query.value}"`]
   if (selectedNotebook.value) parts.push(`in "${selectedNotebook.value.name}"`)
   return parts.join(' ')
 })
 
+/**
+ * Debounced search function (300ms delay).
+ * Clears results when the query is empty; otherwise calls the search API
+ * with optional notebook filter.
+ */
 const search = useDebounceFn(async () => {
   if (!query.value.trim()) {
     results.value = []
@@ -61,19 +100,31 @@ const search = useDebounceFn(async () => {
   }
 }, 300)
 
+/** Trigger search immediately when query or notebook filter changes */
 watch([query, notebookId], () => {
   search()
 }, { immediate: true })
 
+/**
+ * Navigates to the note editor for the given search result.
+ * @param note - The note to open
+ */
 function goToNote(note: Note) {
   router.push({ name: 'note-edit', params: { notebookId: note.notebook_id, noteId: note.id } })
 }
 
+/** Clears the notebook filter */
 function clearNotebookFilter() {
   notebookId.value = ''
 }
 
 // Archive / Pin / Delete actions for search results
+
+/**
+ * Toggles the archive state of a note in search results.
+ * Removes archived notes from the results list.
+ * @param note - The note to archive/unarchive
+ */
 async function toggleArchive(note: Note) {
   try {
     const { notesApi } = await import('@/api/notes')
@@ -90,6 +141,10 @@ async function toggleArchive(note: Note) {
   }
 }
 
+/**
+ * Toggles the pin state of a note in search results.
+ * @param note - The note to pin/unpin
+ */
 async function togglePin(note: Note) {
   try {
     const { notesApi } = await import('@/api/notes')
@@ -102,6 +157,10 @@ async function togglePin(note: Note) {
   }
 }
 
+/**
+ * Deletes a note from search results after user confirmation.
+ * @param note - The note to delete
+ */
 async function deleteNote(note: Note) {
   if (!confirm(`Delete "${note.title || 'Untitled'}"?`)) return
   try {
@@ -122,7 +181,7 @@ async function deleteNote(note: Note) {
       <h1 class="text-2xl font-bold">Search</h1>
     </div>
 
-    <!-- Search input + notebook filter -->
+    <!-- Search input and notebook filter dropdown -->
     <div class="flex gap-3 mb-6">
       <div class="flex-1">
         <UiInput
@@ -149,7 +208,7 @@ async function deleteNote(note: Note) {
       </div>
     </div>
 
-    <!-- Active filter indicator -->
+    <!-- Active notebook filter indicator with clear button -->
     <div v-if="selectedNotebook" class="flex items-center gap-2 mb-4">
       <span
         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
@@ -176,7 +235,7 @@ async function deleteNote(note: Note) {
       </div>
     </div>
 
-    <!-- Empty -->
+    <!-- Empty state: no results found for the query -->
     <div v-else-if="query && results.length === 0">
       <UiEmpty
         icon="i-ph-magnifying-glass"
@@ -185,7 +244,7 @@ async function deleteNote(note: Note) {
       />
     </div>
 
-    <!-- Results -->
+    <!-- Search results list with archive/pin/delete actions -->
     <div v-else-if="results.length > 0" class="space-y-2">
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ total }} results found</p>
       <NoteListItem

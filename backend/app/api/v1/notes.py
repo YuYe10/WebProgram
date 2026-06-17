@@ -1,3 +1,10 @@
+"""Note management endpoints.
+
+Provides CRUD operations for notes, including listing, creating,
+updating, deleting, pinning, archiving, and tag attachment/detachment.
+Notes are scoped to notebooks but can also be queried globally.
+"""
+
 import uuid
 
 from fastapi import APIRouter, Depends, Query
@@ -18,7 +25,9 @@ from app.services.note import note_service
 
 router = APIRouter()
 
-# Static routes must come before parameterized routes
+# Static routes must come before parameterized routes to avoid
+# FastAPI interpreting "archived" or "notes" as a {note_id} path parameter.
+
 
 @router.get("/notes", response_model=PaginatedResponse[NoteResponse])
 async def list_all_notes(
@@ -28,10 +37,22 @@ async def list_all_notes(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """List all notes across all notebooks, optionally filtered by tag."""
+    """List all notes across all notebooks, optionally filtered by tag.
+
+    Args:
+        page: Page number (1-indexed).
+        size: Number of items per page (max 100).
+        tag_id: Optional tag UUID to filter notes by.
+        db: Async database session injected via dependency.
+        current_user: Authenticated user resolved from the Bearer token.
+
+    Returns:
+        PaginatedResponse[NoteResponse]: Paginated list of notes.
+    """
     items, total = await note_service.list_all_notes(
         db, current_user.id, page=page, size=size, tag_id=tag_id,
     )
+    # Ceiling division to compute total page count
     pages = (total + size - 1) // size
     return PaginatedResponse(items=items, total=total, page=page, size=size, pages=pages)
 
@@ -43,7 +64,17 @@ async def list_archived_notes(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """List all archived notes."""
+    """List all archived notes.
+
+    Args:
+        page: Page number (1-indexed).
+        size: Number of items per page (max 100).
+        db: Async database session injected via dependency.
+        current_user: Authenticated user resolved from the Bearer token.
+
+    Returns:
+        PaginatedResponse[NoteResponse]: Paginated list of archived notes.
+    """
     items, total = await note_service.list_archived_notes(db, current_user.id, page=page, size=size)
     pages = (total + size - 1) // size
     return PaginatedResponse(items=items, total=total, page=page, size=size, pages=pages)
@@ -60,6 +91,25 @@ async def list_notes(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """List notes within a specific notebook with optional filters.
+
+    Args:
+        notebook_id: UUID of the parent notebook.
+        pinned: Optional filter for pinned status (None = all).
+        archived: Whether to include archived notes. Defaults to False.
+        tag_id: Optional tag UUID to filter notes by.
+        page: Page number (1-indexed).
+        size: Number of items per page (max 100).
+        db: Async database session injected via dependency.
+        current_user: Authenticated user resolved from the Bearer token.
+
+    Returns:
+        PaginatedResponse[NoteResponse]: Paginated list of notes.
+
+    Raises:
+        NotFoundException: If the notebook does not exist.
+        ForbiddenException: If the notebook does not belong to the current user.
+    """
     items, total = await note_service.list_notes(
         db, notebook_id, current_user.id, pinned=pinned, archived=archived, tag_id=tag_id, page=page, size=size
     )
@@ -74,6 +124,21 @@ async def create_note(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Create a new note within a notebook.
+
+    Args:
+        notebook_id: UUID of the parent notebook.
+        data: Note creation payload (title, content, etc.).
+        db: Async database session injected via dependency.
+        current_user: Authenticated user resolved from the Bearer token.
+
+    Returns:
+        NoteResponse: The newly created note.
+
+    Raises:
+        NotFoundException: If the notebook does not exist.
+        ForbiddenException: If the notebook does not belong to the current user.
+    """
     return await note_service.create(db, notebook_id, current_user.id, data)
 
 
@@ -83,6 +148,20 @@ async def get_note(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Retrieve a single note by ID.
+
+    Args:
+        note_id: UUID of the note to retrieve.
+        db: Async database session injected via dependency.
+        current_user: Authenticated user resolved from the Bearer token.
+
+    Returns:
+        NoteResponse: The requested note.
+
+    Raises:
+        NotFoundException: If the note does not exist.
+        ForbiddenException: If the note does not belong to the current user.
+    """
     return await note_service.get_note(db, note_id, current_user.id)
 
 
@@ -93,6 +172,21 @@ async def update_note(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Update an existing note.
+
+    Args:
+        note_id: UUID of the note to update.
+        data: Partial update payload with fields to change.
+        db: Async database session injected via dependency.
+        current_user: Authenticated user resolved from the Bearer token.
+
+    Returns:
+        NoteResponse: The updated note.
+
+    Raises:
+        NotFoundException: If the note does not exist.
+        ForbiddenException: If the note does not belong to the current user.
+    """
     return await note_service.update(db, note_id, current_user.id, data)
 
 
@@ -102,6 +196,20 @@ async def delete_note(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Delete a note by ID.
+
+    Args:
+        note_id: UUID of the note to delete.
+        db: Async database session injected via dependency.
+        current_user: Authenticated user resolved from the Bearer token.
+
+    Returns:
+        None: 204 No Content on success.
+
+    Raises:
+        NotFoundException: If the note does not exist.
+        ForbiddenException: If the note does not belong to the current user.
+    """
     await note_service.delete(db, note_id, current_user.id)
 
 
@@ -112,6 +220,21 @@ async def pin_note(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Toggle the pinned status of a note.
+
+    Args:
+        note_id: UUID of the note to pin/unpin.
+        data: Payload containing the pinned flag.
+        db: Async database session injected via dependency.
+        current_user: Authenticated user resolved from the Bearer token.
+
+    Returns:
+        NoteResponse: The updated note with new pinned status.
+
+    Raises:
+        NotFoundException: If the note does not exist.
+        ForbiddenException: If the note does not belong to the current user.
+    """
     return await note_service.pin(db, note_id, current_user.id, data)
 
 
@@ -122,6 +245,21 @@ async def archive_note(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Toggle the archived status of a note.
+
+    Args:
+        note_id: UUID of the note to archive/unarchive.
+        data: Payload containing the archived flag.
+        db: Async database session injected via dependency.
+        current_user: Authenticated user resolved from the Bearer token.
+
+    Returns:
+        NoteResponse: The updated note with new archived status.
+
+    Raises:
+        NotFoundException: If the note does not exist.
+        ForbiddenException: If the note does not belong to the current user.
+    """
     return await note_service.archive(db, note_id, current_user.id, data)
 
 
@@ -132,6 +270,21 @@ async def attach_tag(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Attach a tag to a note.
+
+    Args:
+        note_id: UUID of the note.
+        data: Payload containing the tag_id to attach.
+        db: Async database session injected via dependency.
+        current_user: Authenticated user resolved from the Bearer token.
+
+    Returns:
+        NoteResponse: The updated note with the tag attached.
+
+    Raises:
+        NotFoundException: If the note or tag does not exist.
+        ForbiddenException: If the note does not belong to the current user.
+    """
     return await note_service.attach_tag(db, note_id, current_user.id, data.tag_id)
 
 
@@ -142,4 +295,19 @@ async def detach_tag(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Detach a tag from a note.
+
+    Args:
+        note_id: UUID of the note.
+        tag_id: UUID of the tag to detach.
+        db: Async database session injected via dependency.
+        current_user: Authenticated user resolved from the Bearer token.
+
+    Returns:
+        NoteResponse: The updated note with the tag detached.
+
+    Raises:
+        NotFoundException: If the note or tag association does not exist.
+        ForbiddenException: If the note does not belong to the current user.
+    """
     return await note_service.detach_tag(db, note_id, current_user.id, tag_id)

@@ -1,4 +1,26 @@
 <script setup lang="ts">
+/**
+ * @component RegisterView
+ * @description Registration form view for creating a new user account.
+ * Validates required fields, password match, and minimum length before submission.
+ * On success, the auth store handles redirect to the dashboard.
+ *
+ * Key features:
+ * - Username, email, optional display name, and password fields
+ * - Client-side validation: required fields, password match, min length
+ * - Error message display from API responses
+ * - Loading state during registration
+ * - Link to the login page
+ *
+ * @dependencies
+ * - useAuthStore: handles register API call and auth state
+ * - useUiStore: displays success toast
+ * - UiButton, UiInput: shared UI components
+ *
+ * @example
+ * <!-- Route: /auth/register -->
+ * <RegisterView />
+ */
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
@@ -8,14 +30,26 @@ import UiInput from '@/components/ui/UiInput.vue'
 const auth = useAuthStore()
 const ui = useUiStore()
 
+/** Desired username */
 const username = ref('')
+/** User email address */
 const email = ref('')
+/** Desired password */
 const password = ref('')
+/** Password confirmation for match validation */
 const confirmPassword = ref('')
+/** Optional display name */
 const displayName = ref('')
+/** Whether the registration request is in progress */
 const isLoading = ref(false)
+/** Error message from validation or API response */
 const error = ref('')
 
+/**
+ * Handles form submission: validates required fields, password match,
+ * and minimum password length, then calls the auth store's register method.
+ * Displays a success toast or error message accordingly.
+ */
 async function handleSubmit() {
   error.value = ''
 
@@ -56,6 +90,7 @@ async function handleSubmit() {
       Start your note-taking journey
     </p>
 
+    <!-- Registration form with validation and error display -->
     <form @submit.prevent="handleSubmit" class="flex flex-col gap-4">
       <UiInput
         v-model="username"
@@ -91,6 +126,7 @@ async function handleSubmit() {
         icon="i-ph-lock-key"
       />
 
+      <!-- Error message display -->
       <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
 
       <UiButton
@@ -104,6 +140,7 @@ async function handleSubmit() {
       </UiButton>
     </form>
 
+    <!-- Link to login page -->
     <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
       Already have an account?
       <router-link to="/auth/login" class="text-brand-500 hover:text-brand-600 font-medium">

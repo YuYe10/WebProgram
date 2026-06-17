@@ -1,3 +1,19 @@
+/**
+ * @component AppHeader
+ * @description Sticky top header bar with a search bar (autocomplete + keyboard navigation),
+ *   breadcrumb slot, theme toggle, and an actions slot. Exposes `focusSearch()` for the
+ *   global Ctrl+K shortcut.
+ *
+ * @props None (uses stores only)
+ *
+ * @emits None
+ *
+ * @example
+ * <AppHeader>
+ *   <template #breadcrumb>My Notebook</template>
+ *   <template #actions><button>New</button></template>
+ * </AppHeader>
+ */
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -9,15 +25,26 @@ import type { Note } from '@/types/note'
 const router = useRouter()
 const ui = useUiStore()
 const auth = useAuthStore()
+
+/** Current value of the search input */
 const searchQuery = ref('')
+/** Template ref to the search <input> element */
 const searchInputRef = ref<HTMLInputElement | null>(null)
+/** Whether the autocomplete dropdown is visible */
 const showDropdown = ref(false)
+/** Autocomplete suggestion results */
 const suggestions = ref<Note[]>([])
+/** Whether a search request is in flight */
 const isSearching = ref(false)
+/** Index of the currently highlighted suggestion (-1 = none) */
 const selectedIndex = ref(-1)
+/** Timer handle for input debouncing */
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-// Expose focusSearch for global Ctrl+K shortcut
+/**
+ * Focuses and selects the search input text.
+ * Exposed for the global Ctrl+K shortcut in DefaultLayout.
+ */
 function focusSearch() {
   searchInputRef.value?.focus()
   searchInputRef.value?.select()
@@ -25,6 +52,10 @@ function focusSearch() {
 
 defineExpose({ focusSearch })
 
+/**
+ * Navigates to the full search results page with the current query.
+ * Called on form submit (Enter) when no suggestion is selected.
+ */
 function handleSearch() {
   if (searchQuery.value.trim()) {
     showDropdown.value = false
@@ -33,12 +64,20 @@ function handleSearch() {
   }
 }
 
+/**
+ * Navigates to the editor for a selected suggestion note.
+ * @param note - The note to open
+ */
 function selectSuggestion(note: Note) {
   showDropdown.value = false
   searchQuery.value = ''
   router.push({ name: 'note-edit', params: { notebookId: note.notebook_id, noteId: note.id } })
 }
 
+/**
+ * Fetches autocomplete suggestions from the search API.
+ * @param query - The search string (minimum 1 character)
+ */
 async function fetchSuggestions(query: string) {
   if (query.length < 1) {
     suggestions.value = []
@@ -60,6 +99,7 @@ async function fetchSuggestions(query: string) {
   }
 }
 
+/** Debounced handler for input changes — fetches suggestions after 200ms idle */
 function onInputChange() {
   if (debounceTimer) clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
@@ -67,6 +107,7 @@ function onInputChange() {
   }, 200)
 }
 
+/** Re-opens the dropdown on focus if suggestions are available */
 function onInputFocus() {
   if (searchQuery.value.trim() && suggestions.value.length > 0) {
     showDropdown.value = true
@@ -75,13 +116,19 @@ function onInputFocus() {
   }
 }
 
+/** Closes the dropdown on blur with a delay to allow suggestion clicks */
 function onInputBlur() {
-  // Delay to allow click on suggestion
   setTimeout(() => {
     showDropdown.value = false
   }, 200)
 }
 
+/**
+ * Handles keyboard navigation within the autocomplete dropdown.
+ * - Escape: close dropdown and blur input
+ * - ArrowDown/ArrowUp: move selection
+ * - Enter: select highlighted suggestion or submit search
+ */
 function onInputKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
     showDropdown.value = false
@@ -106,13 +153,18 @@ function onInputKeydown(e: KeyboardEvent) {
   }
 }
 
-// Truncate plain text for snippet display
+/**
+ * Truncates plain text for snippet display in the dropdown.
+ * @param text - The full text to truncate
+ * @param maxLen - Maximum character length (default 80)
+ * @returns Truncated string with ellipsis if needed, or 'No content'
+ */
 function snippet(text: string | null, maxLen = 80): string {
   if (!text) return 'No content'
   return text.length > maxLen ? text.slice(0, maxLen) + '...' : text
 }
 
-// Cleanup
+/** Resets the selected index when the dropdown is closed */
 watch(showDropdown, (val) => {
   if (!val) selectedIndex.value = -1
 })
@@ -152,7 +204,7 @@ watch(showDropdown, (val) => {
         />
       </form>
 
-      <!-- Autocomplete dropdown -->
+      <!-- Autocomplete dropdown — shown when suggestions are available -->
       <div
         v-if="showDropdown && suggestions.length > 0"
         class="absolute top-full mt-1 left-0 right-0 z-50 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl overflow-hidden"
@@ -180,7 +232,7 @@ watch(showDropdown, (val) => {
         </div>
       </div>
 
-      <!-- No results -->
+      <!-- Empty state shown when search yields no results -->
       <div
         v-if="showDropdown && suggestions.length === 0 && !isSearching && searchQuery.trim()"
         class="absolute top-full mt-1 left-0 right-0 z-50 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl p-4 text-center text-sm text-gray-400"

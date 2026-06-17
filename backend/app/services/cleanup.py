@@ -1,4 +1,16 @@
-"""Cleanup service for unused images and expired archived notes."""
+"""Cleanup service for unused images and expired archived notes.
+
+This module handles two categories of periodic maintenance:
+
+1. **Image cleanup** – Detects and deletes image files in the ``uploads/``
+   directory that are no longer referenced by any note's Tiptap content.
+   This runs both eagerly (immediately after a note update/delete) and
+   periodically via the background cleanup loop.
+
+2. **Expired archived note cleanup** – Automatically purges notes that have
+   been in the archive for more than 7 days, removing their tag associations
+   first to avoid foreign-key violations.
+"""
 
 import asyncio
 import logging
@@ -15,17 +27,27 @@ from app.models.tag import NoteTag
 
 logger = logging.getLogger(__name__)
 
+# Absolute path to the uploads directory where user-uploaded images are stored
 UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads"
 
-# Image URL pattern: /uploads/<filename>
+# Regex pattern matching image URLs embedded in Tiptap JSON content.
+# Matches paths like "/uploads/abc123def456.png" and captures the filename.
 IMAGE_URL_PATTERN = re.compile(r"/uploads/([a-f0-9]+\.[a-z]+)")
 
 
 def extract_image_filenames(content: dict | None) -> set[str]:
     """Extract all image filenames from a single note's Tiptap JSON content.
 
-    Images in Tiptap JSON have type: "image" with attrs.src pointing to /uploads/<filename>.
-    Returns a set of bare filenames (e.g. "abc123.png") without the /uploads/ prefix.
+    Images in Tiptap JSON have ``type: "image"`` with ``attrs.src`` pointing
+    to ``/uploads/<filename>``.  The function recursively walks the document
+    tree and collects all such filenames.
+
+    Args:
+        content: A Tiptap JSON document (dict), or None.
+
+    Returns:
+        A set of bare filenames (e.g. ``{"abc123.png"}``) without the
+        ``/uploads/`` prefix.
     """
     result: set[str] = set()
     if not content:
@@ -38,6 +60,7 @@ def extract_image_filenames(content: dict | None) -> set[str]:
                 match = IMAGE_URL_PATTERN.search(src)
                 if match:
                     result.add(match.group(1))
+            # Recurse into all values to handle nested structures
             for value in node.values():
                 walk(value)
         elif isinstance(node, list):
@@ -49,7 +72,19 @@ def extract_image_filenames(content: dict | None) -> set[str]:
 
 
 def extract_referenced_images(db_session) -> set[str]:
-    """Extract all referenced image filenames from note contents."""
+    """Extract all referenced image filenames from note contents.
+
+    Iterates over a collection of note objects (typically a synchronous
+    SQLAlchemy result set) and aggregates every image filename referenced
+    across all notes.
+
+    Args:
+        db_session: An iterable of note objects, each with a ``content``
+            attribute containing Tiptap JSON.
+
+    Returns:
+        A set of all image filenames referenced by the provided notes.
+    """
     referenced: set[str] = set()
     for note in db_session:
         if note.content:
@@ -60,7 +95,15 @@ def extract_referenced_images(db_session) -> set[str]:
 async def cleanup_unused_images(db: AsyncSession) -> int:
     """Delete image files in uploads/ that aren't referenced by any note.
 
-    Returns the number of files deleted.
+    Scans all notes to build the set of referenced filenames, then compares
+    it against the files on disk.  Any file not referenced by any note is
+    deleted.
+
+    Args:
+        db: Async database session used to query note content.
+
+    Returns:
+        The number of image files deleted.
     """
     # Get all notes with content
     result = await db.execute(select(Note.content))
@@ -77,6 +120,7 @@ async def cleanup_unused_images(db: AsyncSession) -> int:
 
     deleted = 0
     for filepath in UPLOAD_DIR.iterdir():
+        # Delete files that exist on disk but are not referenced by any note
         if filepath.is_file() and filepath.name not in referenced:
             try:
                 filepath.unlink()
@@ -94,13 +138,17 @@ async def delete_orphaned_images(db: AsyncSession, candidate_filenames: set[str]
     """Delete specific image files from uploads/ if no note references them.
 
     Use this after a note is deleted or updated to immediately clean up
-    images that are no longer needed.
+    images that are no longer needed.  Unlike ``cleanup_unused_images``, this
+    only checks the provided candidate filenames against the database, making
+    it more efficient for targeted cleanup.
 
     Args:
-        db: Database session.
-        candidate_filenames: Set of bare filenames (e.g. "abc123.png") to check.
+        db: Database session used to query note content.
+        candidate_filenames: Set of bare filenames (e.g. ``"abc123.png"``)
+            to check for orphan status.
 
-    Returns the number of files deleted.
+    Returns:
+        The number of image files deleted.
     """
     if not candidate_filenames or not UPLOAD_DIR.exists():
         return 0
@@ -113,6 +161,7 @@ async def delete_orphaned_images(db: AsyncSession, candidate_filenames: set[str]
 
     deleted = 0
     for filename in candidate_filenames:
+        # Only delete if the file is not referenced by any remaining note
         if filename not in referenced:
             filepath = UPLOAD_DIR / filename
             if filepath.is_file():
@@ -131,8 +180,19 @@ async def delete_orphaned_images(db: AsyncSession, candidate_filenames: set[str]
 async def cleanup_expired_archived(db: AsyncSession) -> int:
     """Delete archived notes that have been archived for more than 7 days.
 
-    Returns the number of notes deleted.
+    Finds all notes where ``is_archived`` is True and ``archived_at`` is
+    older than the 7-day cutoff, then deletes their tag associations and
+    the notes themselves.  The tag associations are deleted explicitly
+    before the notes to avoid foreign-key violations (even though cascading
+    deletes should handle this, being explicit is safer).
+
+    Args:
+        db: Async database session.
+
+    Returns:
+        The number of notes deleted.
     """
+    # Calculate the cutoff timestamp: 7 days ago from now
     cutoff = datetime.now(timezone.utc) - timedelta(days=7)
 
     # Find expired archived notes
@@ -164,7 +224,18 @@ async def cleanup_expired_archived(db: AsyncSession) -> int:
 
 
 async def run_all_cleanup(db: AsyncSession) -> dict:
-    """Run all cleanup tasks. Returns a summary dict."""
+    """Run all cleanup tasks and return a summary.
+
+    Executes both image cleanup and expired archived note cleanup in
+    sequence.
+
+    Args:
+        db: Async database session.
+
+    Returns:
+        A dict with keys ``unused_images_deleted`` and
+        ``expired_archived_deleted`` containing the respective counts.
+    """
     images_deleted = await cleanup_unused_images(db)
     notes_deleted = await cleanup_expired_archived(db)
     return {
@@ -176,9 +247,16 @@ async def run_all_cleanup(db: AsyncSession) -> dict:
 async def cleanup_loop(session_factory, interval_seconds: int = 3600):
     """Background loop that runs cleanup periodically.
 
+    Sleeps for the configured interval, then creates a new database session
+    and runs all cleanup tasks.  The loop continues until cancelled (e.g.
+    on application shutdown).  Errors are caught and logged so the loop
+    never terminates unexpectedly.
+
     Args:
-        session_factory: An async_sessionmaker callable.
-        interval_seconds: Seconds between cleanup runs (default: 1 hour).
+        session_factory: An ``async_sessionmaker`` callable that produces a
+            new ``AsyncSession`` when called.
+        interval_seconds: Seconds between cleanup runs.  Defaults to 1 hour
+            (3600 seconds).
     """
     while True:
         try:
@@ -187,7 +265,9 @@ async def cleanup_loop(session_factory, interval_seconds: int = 3600):
             async with session_factory() as db:
                 await run_all_cleanup(db)
         except asyncio.CancelledError:
+            # Graceful shutdown: exit the loop without error
             logger.info("Cleanup loop cancelled")
             break
         except Exception as e:
+            # Log but do not re-raise so the loop keeps running
             logger.error(f"Error in cleanup loop: {e}", exc_info=True)

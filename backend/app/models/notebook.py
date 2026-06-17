@@ -1,3 +1,10 @@
+"""Notebook ORM model.
+
+Defines the ``notebooks`` table.  A notebook belongs to a single user
+and contains zero or more notes.  Deleting a notebook cascades to its
+child notes.
+"""
+
 import uuid
 from datetime import datetime
 
@@ -9,6 +16,31 @@ from app.core.database import Base
 
 
 class Notebook(Base):
+    """Represents a notebook that groups related notes.
+
+    Table name: ``notebooks``
+
+    Key constraints:
+        * ``id`` – UUID primary key, auto-generated.
+        * ``user_id`` – FK to ``users.id`` with CASCADE delete, indexed.
+
+    Attributes:
+        id: Unique notebook identifier (UUID4).
+        user_id: Owner of the notebook; indexed for fast lookups.
+        name: Display name of the notebook (max 200 chars).
+        description: Optional longer description of the notebook.
+        icon: Iconify icon class string (e.g. ``"i-ph-notebook"``).
+        color: Hex color code for UI theming (7 chars including ``#``).
+        sort_order: Integer used for manual ordering among siblings.
+        is_archived: Soft-delete flag; archived notebooks are hidden by default.
+        created_at: Timestamp when the record was created (server-side default).
+        updated_at: Timestamp when the record was last updated (auto-refreshed).
+
+    Relationships:
+        user: The ``User`` who owns this notebook.
+        notes: All notes contained in this notebook (cascade delete).
+    """
+
     __tablename__ = "notebooks"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -32,4 +64,5 @@ class Notebook(Base):
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="notebooks")
+    # Deleting a notebook cascades to all contained notes.
     notes: Mapped[list["Note"]] = relationship(back_populates="notebook", cascade="all, delete-orphan")

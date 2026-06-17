@@ -1,3 +1,17 @@
+/**
+ * @component AuthLayout
+ * @description Full-screen centered layout for authentication pages (login, register).
+ *   Features decorative gradient blobs, the app logo, a glass-card content area,
+ *   and a tagline footer.
+ *
+ * @props None
+ *
+ * @emits None
+ *
+ * @example
+ * <!-- Used as a route layout wrapping auth pages -->
+ * <AuthLayout />
+ */
 <script setup lang="ts">
 </script>
 

@@ -1,3 +1,10 @@
+/**
+ * @module stores/auth
+ * @description Pinia authentication store. Manages user identity, JWT tokens,
+ * and login/register/logout flows. Tokens are persisted to localStorage and
+ * the store auto-fetches the user profile on initialisation when a token exists.
+ */
+
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/api/auth'
@@ -5,14 +12,36 @@ import type { User, LoginRequest, RegisterRequest } from '@/types/user'
 import router from '@/router'
 
 export const useAuthStore = defineStore('auth', () => {
+  // ── State ──────────────────────────────────────────────────────────────────
+
+  /** Currently authenticated user, or `null` when logged out. */
   const user = ref<User | null>(null)
+
+  /** Current JWT access token (also persisted in localStorage). */
   const accessToken = ref<string | null>(localStorage.getItem('access_token'))
+
+  /** Current JWT refresh token (also persisted in localStorage). */
   const refreshToken = ref<string | null>(localStorage.getItem('refresh_token'))
+
+  /** Whether an auth request (login/register) is in progress. */
   const isLoading = ref(false)
+
+  /** Last authentication error message, or `null` when no error. */
   const error = ref<string | null>(null)
 
+  // ── Getters ────────────────────────────────────────────────────────────────
+
+  /** `true` when an access token is present (does not guarantee it is still valid). */
   const isAuthenticated = computed(() => !!accessToken.value)
 
+  // ── Actions ────────────────────────────────────────────────────────────────
+
+  /**
+   * Persist access and refresh tokens to both reactive state and localStorage.
+   *
+   * @param access  - New access token.
+   * @param refresh - New refresh token.
+   */
   function setTokens(access: string, refresh: string) {
     accessToken.value = access
     refreshToken.value = refresh
@@ -20,6 +49,9 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('refresh_token', refresh)
   }
 
+  /**
+   * Remove tokens from reactive state and localStorage.
+   */
   function clearTokens() {
     accessToken.value = null
     refreshToken.value = null
@@ -27,6 +59,13 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('refresh_token')
   }
 
+  /**
+   * Authenticate with email and password.
+   * On success, stores tokens, sets the user, and navigates to the dashboard.
+   *
+   * @param data - Login credentials (email, password).
+   * @throws Re-throws the API error after setting {@link error}.
+   */
   async function login(data: LoginRequest) {
     isLoading.value = true
     error.value = null
@@ -43,6 +82,13 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /**
+   * Register a new account.
+   * On success, stores tokens, sets the user, and navigates to the dashboard.
+   *
+   * @param data - Registration payload (username, email, password, optional display name).
+   * @throws Re-throws the API error after setting {@link error}.
+   */
   async function register(data: RegisterRequest) {
     isLoading.value = true
     error.value = null
@@ -59,6 +105,10 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /**
+   * Fetch the current user's profile from the API.
+   * If the request fails (e.g. expired token), the user is logged out.
+   */
   async function fetchUser() {
     if (!accessToken.value) return
     try {
@@ -68,6 +118,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /**
+   * Clear all auth state and redirect to the login page.
+   */
   function logout() {
     clearTokens()
     user.value = null

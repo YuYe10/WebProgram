@@ -1,3 +1,17 @@
+/**
+ * @component DefaultLayout
+ * @description Main authenticated layout with a collapsible sidebar, a sticky header,
+ *   and a content area. Registers a global Ctrl+K shortcut to focus the search bar.
+ *   Includes a mobile overlay that closes the sidebar on tap.
+ *
+ * @props None
+ *
+ * @emits None
+ *
+ * @example
+ * <!-- Used as a route layout wrapping authenticated pages -->
+ * <DefaultLayout />
+ */
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useUiStore } from '@/stores/ui'
@@ -5,9 +19,13 @@ import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 
 const ui = useUiStore()
+/** Template ref to AppHeader for calling `focusSearch()` */
 const headerRef = ref<InstanceType<typeof AppHeader> | null>(null)
 
-// Global Ctrl+K shortcut to focus search bar
+/**
+ * Global keyboard handler — focuses the search bar on Ctrl+K.
+ * @param e - The keyboard event
+ */
 function handleGlobalKeydown(e: KeyboardEvent) {
   if (e.ctrlKey && e.key === 'k') {
     e.preventDefault()
@@ -15,10 +33,12 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   }
 }
 
+/** Register the global Ctrl+K shortcut on mount */
 onMounted(() => {
   document.addEventListener('keydown', handleGlobalKeydown)
 })
 
+/** Clean up the global keyboard listener on unmount */
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleGlobalKeydown)
 })

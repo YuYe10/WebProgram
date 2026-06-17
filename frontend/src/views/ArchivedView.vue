@@ -1,4 +1,24 @@
 <script setup lang="ts">
+/**
+ * @component ArchivedView
+ * @description Displays archived notes with restore and permanent delete capabilities.
+ * Provides a confirmation modal before permanent deletion to prevent accidents.
+ *
+ * Key features:
+ * - Paginated list of archived notes
+ * - Restore notes back to their original notebooks
+ * - Permanent deletion with confirmation modal
+ * - Skeleton loading and empty states
+ *
+ * @dependencies
+ * - useUiStore: toast notifications
+ * - notesApi: fetch archived notes, restore, and delete
+ * - NoteListItem: reusable note card component
+ *
+ * @example
+ * <!-- Route: /archived -->
+ * <ArchivedView />
+ */
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { notesApi } from '@/api/notes'
@@ -12,22 +32,35 @@ import { useUiStore } from '@/stores/ui'
 
 const router = useRouter()
 const ui = useUiStore()
+/** List of archived notes for the current page */
 const notes = ref<Note[]>([])
+/** Whether archived notes are being loaded */
 const isLoading = ref(true)
+/** Total number of archived notes */
 const total = ref(0)
+/** Current page number for pagination */
 const page = ref(1)
+/** Number of notes per page */
 const pageSize = 20
+/** Whether more archived notes are available */
 const hasMore = ref(false)
 
-// Delete confirmation
+/** Whether the delete confirmation modal is visible */
 const showDeleteConfirm = ref(false)
+/** The note pending permanent deletion */
 const noteToDelete = ref<Note | null>(null)
+/** Whether a permanent delete request is in progress */
 const deleting = ref(false)
 
+/** Fetch archived notes on mount */
 onMounted(() => {
   fetchArchived()
 })
 
+/**
+ * Fetches the first page of archived notes.
+ * Replaces the current list with the response items.
+ */
 async function fetchArchived() {
   isLoading.value = true
   try {
@@ -42,6 +75,10 @@ async function fetchArchived() {
   }
 }
 
+/**
+ * Loads the next page of archived notes and appends them.
+ * Reverts the page number on failure.
+ */
 async function loadMore() {
   page.value++
   try {
@@ -54,10 +91,19 @@ async function loadMore() {
   }
 }
 
+/**
+ * Navigates to the note editor for the given archived note.
+ * @param note - The note to open
+ */
 function goToNote(note: Note) {
   router.push({ name: 'note-edit', params: { notebookId: note.notebook_id, noteId: note.id } })
 }
 
+/**
+ * Restores an archived note by setting its archive state to false.
+ * Removes the note from the local list on success.
+ * @param note - The note to restore
+ */
 async function restoreNote(note: Note) {
   try {
     await notesApi.archive(note.id, false)
@@ -69,11 +115,19 @@ async function restoreNote(note: Note) {
   }
 }
 
+/**
+ * Opens the delete confirmation modal for the given note.
+ * @param note - The note to be deleted
+ */
 function confirmDelete(note: Note) {
   noteToDelete.value = note
   showDeleteConfirm.value = true
 }
 
+/**
+ * Permanently deletes the note stored in `noteToDelete`.
+ * Closes the modal and removes the note from the list on success.
+ */
 async function deletePermanently() {
   if (!noteToDelete.value) return
   deleting.value = true
@@ -124,7 +178,7 @@ async function deletePermanently() {
       />
     </div>
 
-    <!-- Note list -->
+    <!-- Archived note list with restore and delete actions -->
     <div v-else class="space-y-2">
       <NoteListItem
         v-for="note in notes"

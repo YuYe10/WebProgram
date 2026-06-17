@@ -1,6 +1,15 @@
+/**
+ * @module router/index
+ * @description Vue Router configuration. Defines all application routes with
+ * lazy-loaded components, layout wrappers, and meta fields for auth/guest
+ * access control. The global {@link authGuard} is registered as a
+ * `beforeEach` hook.
+ */
+
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { authGuard } from './guards'
 
+/** Application route definitions. */
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
@@ -73,6 +82,7 @@ const router = createRouter({
   routes,
 })
 
+// Register the global navigation guard for authentication checks
 router.beforeEach(authGuard)
 
 export default router

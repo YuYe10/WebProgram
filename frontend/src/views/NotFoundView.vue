@@ -1,4 +1,16 @@
 <script setup lang="ts">
+/**
+ * @component NotFoundView
+ * @description 404 page displayed when the user navigates to an undefined route.
+ * Shows a ghost icon, "404" heading, and a button to navigate back to the dashboard.
+ *
+ * @dependencies
+ * - UiButton: shared UI button component
+ *
+ * @example
+ * <!-- Rendered as a catch-all fallback route -->
+ * <NotFoundView />
+ */
 import UiButton from '@/components/ui/UiButton.vue'
 </script>
 

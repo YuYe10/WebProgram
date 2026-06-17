@@ -1,3 +1,14 @@
+/**
+ * @component UiSpinner
+ * @description A simple spinning loader icon using the brand color.
+ *
+ * @props size - Icon size: 'sm' | 'md' | 'lg' (default: 'md')
+ *
+ * @emits None
+ *
+ * @example
+ * <UiSpinner size="lg" />
+ */
 <script setup lang="ts">
 withDefaults(defineProps<{
   size?: 'sm' | 'md' | 'lg'

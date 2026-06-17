@@ -1,4 +1,22 @@
 <script setup lang="ts">
+/**
+ * @component DashboardView
+ * @description Main dashboard view displaying the user's notebooks in a responsive grid.
+ * Provides notebook creation via a modal dialog with customizable name, color, and icon.
+ * Key features:
+ * - Responsive notebook grid with skeleton loading states
+ * - Empty state with call-to-action when no notebooks exist
+ * - Create notebook modal with color and icon pickers
+ * - Staggered entrance animation for notebook cards
+ *
+ * @dependencies
+ * - useNotebooksStore: manages notebook data and CRUD operations
+ * - useUiStore: displays toast notifications
+ * - UiButton, UiModal, UiInput, UiEmpty, UiSkeleton: shared UI components
+ *
+ * @example
+ * <DashboardView /> <!-- Rendered at the root "/" route -->
+ */
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNotebooksStore } from '@/stores/notebooks'
@@ -14,29 +32,43 @@ const router = useRouter()
 const notebooksStore = useNotebooksStore()
 const ui = useUiStore()
 
+/** Whether the create-notebook modal is visible */
 const showCreateModal = ref(false)
+/** Name for the new notebook */
 const newName = ref('')
+/** Description for the new notebook */
 const newDescription = ref('')
+/** Selected icon class for the new notebook */
 const newIcon = ref('i-ph-notebook')
+/** Selected color hex for the new notebook */
 const newColor = ref('#6366f1')
+/** Whether a notebook creation request is in progress */
 const creating = ref(false)
 
+/** Available icon options using Phosphor icon classes */
 const ICON_OPTIONS = [
   'i-ph-notebook', 'i-ph-book-open', 'i-ph-code', 'i-ph-brain',
   'i-ph-lightbulb', 'i-ph-rocket', 'i-ph-heart', 'i-ph-star',
   'i-ph-flower', 'i-ph-globe', 'i-ph-coffee', 'i-ph-music-notes',
 ]
 
+/** Available color options as hex values */
 const COLOR_OPTIONS = [
   '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e',
   '#f97316', '#eab308', '#22c55e', '#14b8a6',
   '#06b6d4', '#3b82f6', '#6b7280', '#1e293b',
 ]
 
+/** Fetch notebooks when the component mounts */
 onMounted(() => {
   notebooksStore.fetchNotebooks()
 })
 
+/**
+ * Creates a new notebook with the current form values.
+ * On success, closes the modal, resets the form, shows a toast,
+ * and navigates to the newly created notebook's detail page.
+ */
 async function createNotebook() {
   if (!newName.value.trim()) return
   creating.value = true
@@ -76,7 +108,7 @@ async function createNotebook() {
       </UiButton>
     </div>
 
-    <!-- Notebooks Grid -->
+    <!-- Notebooks Grid: show skeleton placeholders while loading -->
     <div v-if="notebooksStore.isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       <div v-for="i in 8" :key="i" class="glass-card p-6">
         <UiSkeleton width="2.5rem" height="2.5rem" rounded="rounded-xl" class="mb-4" />
@@ -85,6 +117,7 @@ async function createNotebook() {
       </div>
     </div>
 
+    <!-- Empty state: no notebooks exist yet -->
     <div v-else-if="notebooksStore.notebooks.length === 0">
       <UiEmpty
         icon="i-ph-notebook"
@@ -98,6 +131,7 @@ async function createNotebook() {
       </UiEmpty>
     </div>
 
+    <!-- Notebook grid: each card navigates to its detail page -->
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       <div
         v-for="(nb, idx) in notebooksStore.notebooks"
@@ -106,6 +140,7 @@ async function createNotebook() {
         class="glass-card p-6 cursor-pointer group hover:scale-[1.02] transition-all duration-300 bounce-in"
         @click="router.push({ name: 'notebook-detail', params: { id: nb.id } })"
       >
+        <!-- Notebook icon with dynamic background color -->
         <div
           class="w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110"
           :style="{ backgroundColor: nb.color + '20', color: nb.color }"
@@ -125,7 +160,7 @@ async function createNotebook() {
       </div>
     </div>
 
-    <!-- Create Modal -->
+    <!-- Create Notebook Modal with name, color, and icon pickers -->
     <UiModal v-model:open="showCreateModal" title="New Notebook" size="sm">
       <div class="flex flex-col gap-4">
         <UiInput
@@ -134,6 +169,7 @@ async function createNotebook() {
           placeholder="My Notebook"
           icon="i-ph-notebook"
         />
+        <!-- Color picker: selected color gets a ring indicator -->
         <div>
           <label class="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1.5">Color</label>
           <div class="flex flex-wrap gap-2">
@@ -146,6 +182,7 @@ async function createNotebook() {
             />
           </div>
         </div>
+        <!-- Icon picker: selected icon gets a brand highlight -->
         <div>
           <label class="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1.5">Icon</label>
           <div class="flex flex-wrap gap-1.5">

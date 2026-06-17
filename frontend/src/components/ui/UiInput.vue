@@ -1,3 +1,21 @@
+/**
+ * @component UiInput
+ * @description A styled text input with optional label, icon, error message, and v-model support.
+ *   Implements the two-way binding pattern via `modelValue` / `update:modelValue`.
+ *
+ * @props modelValue   - The current input value (v-model binding)
+ * @props label        - Optional label text displayed above the input
+ * @props placeholder  - Placeholder text for the input
+ * @props type         - HTML input type attribute (default: 'text')
+ * @props error        - Error message displayed below the input; also triggers error styling
+ * @props disabled     - Whether the input is disabled
+ * @props icon         - CSS class for a leading icon inside the input
+ *
+ * @emits update:modelValue - Emitted with the new value on input
+ *
+ * @example
+ * <UiInput v-model="email" label="Email" type="email" icon="i-ph-envelope" :error="emailError" />
+ */
 <script setup lang="ts">
 withDefaults(defineProps<{
   modelValue: string

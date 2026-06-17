@@ -1,4 +1,29 @@
 <script setup lang="ts">
+/**
+ * @component NotebookDetailView
+ * @description Detail view for a single notebook, showing its notes list
+ * and providing notebook/note management actions.
+ *
+ * Key features:
+ * - Notebook header with icon, name, description, and note count
+ * - Create note modal with optional tag selection
+ * - Edit notebook name and description
+ * - Delete notebook with confirmation
+ * - Note list with archive, pin, and delete actions
+ * - Auto-fetches notebook data if not already in store
+ *
+ * @dependencies
+ * - useNotebooksStore: notebook CRUD operations
+ * - useNotesStore: note data for the current notebook
+ * - useTagsStore: tags for the create-note modal
+ * - useUiStore: toast notifications
+ * - NoteListItem: reusable note card component
+ * - date-fns: formatted update timestamp
+ *
+ * @example
+ * <!-- Route: /notebooks/:id -->
+ * <NotebookDetailView />
+ */
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useNotebooksStore } from '@/stores/notebooks'
@@ -22,25 +47,42 @@ const notesStore = useNotesStore()
 const tagsStore = useTagsStore()
 const ui = useUiStore()
 
+/** Notebook ID from the route params */
 const notebookId = computed(() => route.params.id as string)
+/** Current notebook object, initialized from store or fetched on mount */
 const notebook = ref(notebooksStore.notebooks.find(n => n.id === notebookId.value) || null)
+/** Whether the edit notebook modal is visible */
 const showEditModal = ref(false)
+/** Whether the delete notebook confirmation modal is visible */
 const showDeleteConfirm = ref(false)
+/** Whether the create note modal is visible */
 const showCreateModal = ref(false)
+/** Edit form: notebook name */
 const editName = ref('')
+/** Edit form: notebook description */
 const editDescription = ref('')
+/** Create form: new note title */
 const newNoteTitle = ref('')
+/** Create form: selected tag IDs for the new note */
 const selectedTagIds = ref<string[]>([])
+/** Whether the tag dropdown in the create modal is open */
 const showTagDropdown = ref(false)
+/** Whether a note creation request is in progress */
 const creating = ref(false)
 
+/** Tag objects corresponding to the selected tag IDs */
 const selectedTags = computed<Tag[]>(() =>
   tagsStore.tags.filter(t => selectedTagIds.value.includes(t.id))
 )
+/** Tags not yet selected, available for the dropdown */
 const availableTags = computed(() =>
   tagsStore.tags.filter(t => !selectedTagIds.value.includes(t.id))
 )
 
+/**
+ * On mount: fetch tags, load notebook data if not in store,
+ * set it as active, and fetch its notes.
+ */
 onMounted(async () => {
   tagsStore.fetchTags()
   if (!notebook.value) {
@@ -55,6 +97,10 @@ onMounted(async () => {
   await notesStore.fetchNotes(notebookId.value)
 })
 
+/**
+ * Updates the notebook's name and description via the store.
+ * Refreshes the local notebook reference on success.
+ */
 async function updateNotebook() {
   if (!editName.value.trim()) return
   await notebooksStore.updateNotebook(notebookId.value, {
@@ -66,12 +112,16 @@ async function updateNotebook() {
   ui.addToast({ type: 'success', message: 'Notebook updated' })
 }
 
+/**
+ * Deletes the notebook and navigates back to the dashboard.
+ */
 async function deleteNotebook() {
   await notebooksStore.deleteNotebook(notebookId.value)
   ui.addToast({ type: 'success', message: 'Notebook deleted' })
   router.push('/')
 }
 
+/** Opens the create-note modal and resets form state */
 function openCreateModal() {
   newNoteTitle.value = ''
   selectedTagIds.value = []
@@ -79,6 +129,10 @@ function openCreateModal() {
   showCreateModal.value = true
 }
 
+/**
+ * Adds a tag to the selection for the new note.
+ * @param tag - The tag to add
+ */
 function addTagToSelection(tag: Tag) {
   if (!selectedTagIds.value.includes(tag.id)) {
     selectedTagIds.value.push(tag.id)
@@ -86,10 +140,18 @@ function addTagToSelection(tag: Tag) {
   showTagDropdown.value = false
 }
 
+/**
+ * Removes a tag from the selection by its ID.
+ * @param tagId - The ID of the tag to remove
+ */
 function removeTagFromSelection(tagId: string) {
   selectedTagIds.value = selectedTagIds.value.filter(id => id !== tagId)
 }
 
+/**
+ * Creates a new note in the current notebook with optional tags,
+ * then navigates to the note editor.
+ */
 async function createNote() {
   if (!newNoteTitle.value.trim()) return
   creating.value = true
@@ -109,12 +171,21 @@ async function createNote() {
   }
 }
 
+/**
+ * Deletes a note after user confirmation.
+ * @param noteId - The ID of the note to delete
+ */
 async function onDeleteNote(noteId: string) {
   if (!confirm('Delete this note?')) return
   await notesStore.deleteNote(noteId)
   ui.addToast({ type: 'info', message: 'Note deleted' })
 }
 
+/**
+ * Toggles the archive state of a note.
+ * Re-fetches the notes list if the note was archived (removed from view).
+ * @param note - The note to archive/unarchive
+ */
 async function onArchiveNote(note: any) {
   try {
     const newState = !note.is_archived
@@ -128,6 +199,10 @@ async function onArchiveNote(note: any) {
   }
 }
 
+/**
+ * Toggles the pin state of a note.
+ * @param note - The note to pin/unpin
+ */
 async function onPinNote(note: any) {
   try {
     await notesStore.togglePin(note.id, !note.is_pinned)
@@ -137,6 +212,9 @@ async function onPinNote(note: any) {
   }
 }
 
+/**
+ * Opens the edit notebook modal, pre-filling the form with current values.
+ */
 function openEditModal() {
   if (!notebook.value) return
   editName.value = notebook.value.name
@@ -147,7 +225,7 @@ function openEditModal() {
 
 <template>
   <div>
-    <!-- Notebook Header -->
+    <!-- Notebook Header: icon, name, description, note count, and action buttons -->
     <div v-if="notebook" class="mb-8">
       <div class="flex items-start justify-between">
         <div class="flex items-center gap-4">
@@ -182,7 +260,7 @@ function openEditModal() {
       </div>
     </div>
 
-    <!-- Notes List -->
+    <!-- Notes List with loading, empty, and populated states -->
     <div v-if="notesStore.isLoading" class="space-y-3">
       <div v-for="i in 5" :key="i" class="glass-card p-4">
         <UiSkeleton width="60%" height="1.125rem" class="mb-2" />
@@ -215,7 +293,7 @@ function openEditModal() {
       />
     </div>
 
-    <!-- Create Note Modal -->
+    <!-- Create Note Modal with title input and tag selector -->
     <UiModal v-model:open="showCreateModal" title="New Note" size="sm">
       <div class="flex flex-col gap-4">
         <UiInput
@@ -225,7 +303,7 @@ function openEditModal() {
           icon="i-ph-note-pencil"
           @keyup.enter="createNote"
         />
-        <!-- Tag selector -->
+        <!-- Tag selector within create-note modal -->
         <div>
           <label class="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1.5">Tags</label>
           <!-- Selected tags -->
@@ -277,7 +355,7 @@ function openEditModal() {
       </template>
     </UiModal>
 
-    <!-- Edit Modal -->
+    <!-- Edit Notebook Modal -->
     <UiModal v-model:open="showEditModal" title="Edit Notebook" size="sm">
       <div class="flex flex-col gap-4">
         <UiInput v-model="editName" label="Name" />
@@ -289,7 +367,7 @@ function openEditModal() {
       </template>
     </UiModal>
 
-    <!-- Delete Confirm -->
+    <!-- Delete Notebook Confirmation Modal -->
     <UiModal v-model:open="showDeleteConfirm" title="Delete Notebook" size="sm">
       <p class="text-sm text-gray-600 dark:text-gray-400">
         Are you sure? This will permanently delete this notebook and all notes within it.

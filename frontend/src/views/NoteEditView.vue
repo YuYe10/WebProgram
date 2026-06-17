@@ -1,4 +1,33 @@
 <script setup lang="ts">
+/**
+ * @component NoteEditView
+ * @description Rich-text note editor view powered by Tiptap.
+ * Provides a full-featured editing experience with auto-save, image upload,
+ * tag management, and a right-click context menu.
+ *
+ * Key features:
+ * - Tiptap-based WYSIWYG editor with 15+ extensions (headings, lists, tables, code blocks, etc.)
+ * - Auto-save with 3-second debounce after content changes
+ * - Manual save via Ctrl/Cmd+S keyboard shortcut
+ * - Image upload with file type/size validation (5 MB max)
+ * - Tag attachment/detachment via dropdown
+ * - Right-click context menu with formatting, heading, list, and block actions
+ * - Text color picker with preset palette
+ * - Character and word count in the status bar
+ * - Staggered save-on-unmount when dirty
+ *
+ * @dependencies
+ * - useNotesStore: fetches and updates note data
+ * - useTagsStore: provides available tags for the dropdown
+ * - useEditorStore: tracks dirty/saving state for the status bar
+ * - useUiStore: displays toast notifications
+ * - @tiptap/vue-3 + extensions: rich-text editor engine
+ * - lowlight: syntax highlighting for code blocks
+ *
+ * @example
+ * <!-- Accessed via route: /notebooks/:notebookId/notes/:noteId -->
+ * <NoteEditView />
+ */
 import { onMounted, onBeforeUnmount, ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useNotesStore } from '@/stores/notes'
@@ -37,22 +66,40 @@ const tagsStore = useTagsStore()
 const editorStore = useEditorStore()
 const ui = useUiStore()
 
+/** ID of the parent notebook, extracted from route params */
 const notebookId = route.params.notebookId as string
+/** ID of the current note, extracted from route params */
 const noteId = route.params.noteId as string
+/** Note title bound to the title input */
 const title = ref('')
+/** Whether the note data is being loaded */
 const isLoading = ref(true)
+/** Timer reference for the auto-save debounce */
 const saveTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+/** Whether an image upload is in progress */
 const isUploadingImage = ref(false)
+/** Hidden file input ref for image uploads */
 const imageInput = ref<HTMLInputElement | null>(null)
 
 // ── Tag management ──
+/** Tags currently attached to this note */
 const noteTags = ref<Tag[]>([])
+/** Whether the tag-attachment dropdown is open */
 const showTagDropdown = ref(false)
 
+/**
+ * Computed list of tags not yet attached to this note,
+ * used to populate the tag dropdown.
+ */
 const availableTags = computed(() =>
   tagsStore.tags.filter(t => !noteTags.value.some(nt => nt.id === t.id))
 )
 
+/**
+ * Attaches a tag to the current note via the API
+ * and updates the local tag list on success.
+ * @param tag - The tag to attach
+ */
 async function attachTag(tag: Tag) {
   try {
     const updated = await notesApi.attachTag(noteId, tag.id)
@@ -63,6 +110,11 @@ async function attachTag(tag: Tag) {
   }
 }
 
+/**
+ * Detaches a tag from the current note via the API
+ * and updates the local tag list on success.
+ * @param tag - The tag to detach
+ */
 async function detachTag(tag: Tag) {
   try {
     const updated = await notesApi.detachTag(noteId, tag.id)
@@ -72,15 +124,16 @@ async function detachTag(tag: Tag) {
   }
 }
 
-// Context menu state
+/** Right-click context menu position and visibility state */
 const contextMenu = ref({
   visible: false,
   x: 0,
   y: 0,
 })
+/** Whether the color sub-menu is open inside the context menu */
 const showColorSubmenu = ref(false)
 
-// Preset colors for the color sub-menu
+/** Preset colors for the text-color sub-menu in the context menu */
 const presetColors = [
   '#ef4444', '#f97316', '#f59e0b', '#eab308',
   '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6',
@@ -88,10 +141,13 @@ const presetColors = [
   '#ec4899', '#f43f5e', '#6b7280', '#374151',
 ]
 
-// Syntax highlighting setup
+/** Lowlight instance for syntax highlighting in code blocks */
 const lowlight = createLowlight(common)
 
-// Custom CodeBlock with language label
+/**
+ * Custom CodeBlock extension that renders a language label
+ * above the code block based on the `data-language` attribute.
+ */
 const CodeBlockWithLabel = CodeBlockLowlight.extend({
   renderHTML({ node, HTMLAttributes }) {
     const language = node.attrs.language
@@ -115,6 +171,10 @@ const CodeBlockWithLabel = CodeBlockLowlight.extend({
   },
 }).configure({ lowlight })
 
+/**
+ * Tiptap editor instance configured with all extensions.
+ * Triggers auto-save on every content update.
+ */
 const editor = useEditor({
   extensions: [
     StarterKit.configure({
@@ -152,11 +212,19 @@ const editor = useEditor({
   },
 })
 
+/**
+ * Schedules an auto-save after a 3-second debounce.
+ * Clears any existing timer before setting a new one.
+ */
 function scheduleAutoSave() {
   if (saveTimer.value) clearTimeout(saveTimer.value)
   saveTimer.value = setTimeout(() => saveNote(), 3000)
 }
 
+/**
+ * Saves the current note (title + content) to the backend.
+ * Updates the editor store's saving/dirty state accordingly.
+ */
 async function saveNote() {
   if (!editor.value) return
   editorStore.setSaving(true)
@@ -174,6 +242,10 @@ async function saveNote() {
   }
 }
 
+/**
+ * Saves the note and navigates back to the notebook detail page
+ * only if the save succeeded (editor is no longer dirty).
+ */
 async function saveAndClose() {
   await saveNote()
   if (!editorStore.isDirty) {
@@ -181,7 +253,11 @@ async function saveAndClose() {
   }
 }
 
-// Get current text color for the color button indicator
+/**
+ * Returns the text color of the current selection, or a default gray
+ * if no color is set or nothing is selected.
+ * @returns The current text color as a hex string
+ */
 function getCurrentColor(): string {
   if (!editor.value) return '#374151'
   const { from, to } = editor.value.state.selection
@@ -190,6 +266,11 @@ function getCurrentColor(): string {
   return attrs.color || '#374151'
 }
 
+/**
+ * Sets the text color for the current selection.
+ * Passing an empty string resets the color to default.
+ * @param color - Hex color string or empty string to reset
+ */
 function setColor(color: string) {
   if (color === '') {
     editor.value?.chain().focus().unsetColor().run()
@@ -198,16 +279,23 @@ function setColor(color: string) {
   }
 }
 
+/** Opens the hidden native color picker input for text color */
 function triggerColorPicker() {
   const input = document.getElementById('text-color-input') as HTMLInputElement | null
   input?.click()
 }
 
-// Image upload handler
+/** Triggers the hidden file input for image upload */
 function triggerImageUpload() {
   imageInput.value?.click()
 }
 
+/**
+ * Handles image file selection, validates type and size,
+ * uploads to the server, and inserts the image into the editor.
+ * Accepted types: JPEG, PNG, GIF, WebP, SVG. Max size: 5 MB.
+ * @param event - The file input change event
+ */
 async function handleImageUpload(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
@@ -250,6 +338,11 @@ async function handleImageUpload(event: Event) {
 }
 
 // Context menu handlers
+/**
+ * Opens the context menu at the mouse position, adjusting
+ * coordinates to prevent overflow beyond the viewport.
+ * @param e - The right-click mouse event
+ */
 function handleContextMenu(e: MouseEvent) {
   e.preventDefault()
   // Adjust position so the menu doesn't overflow the viewport
@@ -266,11 +359,20 @@ function handleContextMenu(e: MouseEvent) {
   contextMenu.value = { visible: true, x, y }
 }
 
+/** Closes the context menu and its color sub-menu */
 function closeContextMenu() {
   contextMenu.value.visible = false
   showColorSubmenu.value = false
 }
 
+/**
+ * Executes a context-menu formatting action on the editor.
+ * Supports: bold, italic, underline, highlight, headings 1-3,
+ * bullet/ordered/task lists, blockquote, code block, horizontal rule,
+ * link insertion, image upload, and clear formatting.
+ * @param action - The action identifier string
+ * @param payload - Optional additional data (e.g., link URL)
+ */
 function contextAction(action: string, payload?: any) {
   if (!editor.value) return
   const chain = editor.value.chain().focus()
@@ -305,14 +407,18 @@ function contextAction(action: string, payload?: any) {
   closeContextMenu()
 }
 
-// Close context menu on click outside or Escape
+/** Closes the context menu when clicking outside of it */
 function onDocumentClick(e: MouseEvent) {
   if (contextMenu.value.visible) {
     closeContextMenu()
   }
 }
 
-// Load note
+/**
+ * Loads the note data on mount, initializes the editor content,
+ * sets the current note ID in the editor store, and fetches available tags.
+ * Redirects to the notebook detail page if the note is not found.
+ */
 onMounted(async () => {
   try {
     const note = await notesStore.fetchNote(noteId)
@@ -333,7 +439,11 @@ onMounted(async () => {
   tagsStore.fetchTags()
 })
 
-// Keyboard shortcut
+/**
+ * Global keyboard handler:
+ * - Ctrl/Cmd+S: manual save
+ * - Escape: close context menu if open
+ */
 function handleKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 's') {
     e.preventDefault()
@@ -344,11 +454,16 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
+/** Register global event listeners on mount */
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
   document.addEventListener('click', onDocumentClick)
 })
 
+/**
+ * Clean up on unmount: remove event listeners, clear save timer,
+ * and perform a final save if there are unsaved changes.
+ */
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeydown)
   document.removeEventListener('click', onDocumentClick)
@@ -357,7 +472,7 @@ onBeforeUnmount(() => {
   if (editorStore.isDirty) saveNote()
 })
 
-// Auto-save on title change
+/** Watch title changes to mark dirty and schedule auto-save */
 watch(title, () => {
   editorStore.markDirty()
   scheduleAutoSave()
@@ -365,12 +480,13 @@ watch(title, () => {
 </script>
 
 <template>
+  <!-- Loading spinner while note data is being fetched -->
   <div v-if="isLoading" class="flex items-center justify-center py-32">
     <span class="i-ph-circle-notch animate-spin w-8 h-8 text-brand-500" />
   </div>
 
   <div v-else class="max-w-4xl mx-auto">
-    <!-- Toolbar -->
+    <!-- Formatting toolbar: sticky bar with text, heading, list, block, image, and undo/redo buttons -->
     <div class="flex items-center gap-1 mb-4 p-2 glass rounded-xl border border-gray-200/50 dark:border-gray-800/50 overflow-x-auto sticky top-16 z-10">
       <button
         class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -405,7 +521,7 @@ watch(title, () => {
         <span class="text-sm font-bold">H</span>
       </button>
 
-      <!-- Text color button -->
+      <!-- Text color button with native color picker overlay -->
       <div class="relative" title="Text Color">
         <button
           class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -429,6 +545,7 @@ watch(title, () => {
         />
       </div>
 
+      <!-- Toolbar separator: headings section -->
       <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
 
       <button
@@ -456,6 +573,7 @@ watch(title, () => {
         <span class="text-sm font-bold">H3</span>
       </button>
 
+      <!-- Toolbar separator: lists section -->
       <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
 
       <button
@@ -483,6 +601,7 @@ watch(title, () => {
         <span class="i-ph-check-square w-5 h-5" />
       </button>
 
+      <!-- Toolbar separator: block elements section -->
       <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
 
       <button
@@ -509,6 +628,7 @@ watch(title, () => {
         <span class="i-ph-minus w-5 h-5" />
       </button>
 
+      <!-- Toolbar separator: insert section -->
       <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
 
       <button
@@ -528,6 +648,7 @@ watch(title, () => {
         @change="handleImageUpload"
       />
 
+      <!-- Spacer pushing undo/redo to the right -->
       <div class="flex-1" />
 
       <button
@@ -554,7 +675,7 @@ watch(title, () => {
       class="w-full text-3xl font-bold bg-transparent border-none outline-none placeholder:text-gray-300 dark:placeholder:text-gray-700 mb-3 px-8"
     />
 
-    <!-- Tag bar -->
+    <!-- Tag bar: displays attached tags with remove buttons and an add-tag dropdown -->
     <div class="flex items-center gap-2 px-8 mt-2 mb-4 flex-wrap">
       <!-- Current tags -->
       <span
@@ -609,7 +730,7 @@ watch(title, () => {
     <!-- Click-outside to close tag dropdown -->
     <div v-if="showTagDropdown" class="fixed inset-0 z-30" @click="showTagDropdown = false" />
 
-    <!-- Editor -->
+    <!-- Editor area with right-click context menu support -->
     <div class="glass-card overflow-hidden" @contextmenu="handleContextMenu">
       <EditorContent :editor="editor" />
     </div>
@@ -728,7 +849,7 @@ watch(title, () => {
       </div>
     </Teleport>
 
-    <!-- Status bar -->
+    <!-- Status bar: shows save state, character/word count, and Done button -->
     <div class="flex items-center justify-between mt-4 px-2 text-xs text-gray-400">
       <div class="flex items-center gap-3">
         <span v-if="editorStore.isSaving" class="flex items-center gap-1.5">

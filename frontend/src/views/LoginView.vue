@@ -1,4 +1,25 @@
 <script setup lang="ts">
+/**
+ * @component LoginView
+ * @description Login form view for user authentication.
+ * Submits email and password credentials to the auth store.
+ * On success, the auth store handles redirect to the dashboard.
+ *
+ * Key features:
+ * - Email and password input fields with validation
+ * - Error message display from API responses
+ * - Loading state during authentication
+ * - Link to the registration page
+ *
+ * @dependencies
+ * - useAuthStore: handles login API call and auth state
+ * - useUiStore: displays welcome toast on success
+ * - UiButton, UiInput: shared UI components
+ *
+ * @example
+ * <!-- Route: /auth/login -->
+ * <LoginView />
+ */
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -10,11 +31,20 @@ const router = useRouter()
 const auth = useAuthStore()
 const ui = useUiStore()
 
+/** User email input */
 const email = ref('')
+/** User password input */
 const password = ref('')
+/** Whether the login request is in progress */
 const isLoading = ref(false)
+/** Error message from validation or API response */
 const error = ref('')
 
+/**
+ * Handles form submission: validates required fields,
+ * calls the auth store's login method, and displays
+ * a welcome toast on success or an error message on failure.
+ */
 async function handleSubmit() {
   if (!email.value || !password.value) {
     error.value = 'Please fill in all fields'
@@ -40,6 +70,7 @@ async function handleSubmit() {
       Sign in to continue to your notes
     </p>
 
+    <!-- Login form with email, password, error display, and submit button -->
     <form @submit.prevent="handleSubmit" class="flex flex-col gap-4">
       <UiInput
         v-model="email"
@@ -56,6 +87,7 @@ async function handleSubmit() {
         icon="i-ph-lock"
       />
 
+      <!-- Error message display -->
       <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
 
       <UiButton
@@ -69,6 +101,7 @@ async function handleSubmit() {
       </UiButton>
     </form>
 
+    <!-- Link to registration page -->
     <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
       Don't have an account?
       <router-link to="/auth/register" class="text-brand-500 hover:text-brand-600 font-medium">

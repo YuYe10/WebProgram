@@ -1,3 +1,10 @@
+"""Search service module.
+
+Provides full-text search over notes using PostgreSQL ILIKE pattern matching
+on the ``title`` and ``plain_text`` columns.  Results can optionally be
+scoped to a single notebook.
+"""
+
 import uuid
 
 from sqlalchemy import func, select
@@ -10,23 +17,54 @@ from app.schemas.tag import TagResponse
 
 
 class SearchService:
+    """Service for searching notes by keyword.
+
+    Responsibilities:
+        - Performing case-insensitive substring searches across note titles
+          and plain-text content.
+        - Optionally filtering results by notebook.
+        - Returning paginated results with total count.
+    """
+
     async def search_notes(
         self, db: AsyncSession, user_id: uuid.UUID, query: str,
         page: int = 1, size: int = 20, notebook_id: str | None = None,
     ) -> tuple[list[NoteResponse], int]:
-        """Search notes using ILIKE on title and plain_text, optionally filtered by notebook."""
+        """Search notes using ILIKE on title and plain_text.
+
+        Constructs a SQL ILIKE query with wildcards (``%query%``) against
+        both the ``title`` and ``plain_text`` columns.  The search is scoped
+        to the authenticated user's notes only.  If ``notebook_id`` is
+        provided and is a valid UUID, results are further filtered to that
+        notebook.
+
+        Args:
+            db: Async database session.
+            user_id: UUID of the authenticated user (scopes results).
+            query: The search string; will be wrapped in ``%`` wildcards.
+            page: 1-based page number.
+            size: Number of items per page.
+            notebook_id: Optional notebook UUID string to scope the search.
+
+        Returns:
+            A tuple of (list of NoteResponse, total count).
+        """
+        # Wrap the query in SQL wildcards for substring matching
         search_term = f"%{query}%"
 
         conditions = [
             Note.user_id == user_id,
+            # Search both title and plain_text columns with OR
             (Note.title.ilike(search_term)) | (Note.plain_text.ilike(search_term)),
         ]
 
+        # Optionally scope the search to a single notebook
         if notebook_id:
             try:
                 nb_uuid = uuid.UUID(notebook_id)
                 conditions.append(Note.notebook_id == nb_uuid)
             except ValueError:
+                # Silently ignore invalid notebook IDs rather than failing
                 pass
 
         stmt = (

@@ -1,12 +1,28 @@
+/**
+ * @component UiToastContainer
+ * @description Fixed-position container that renders all active toast notifications
+ *   from the UI store. Each toast is auto-dismissed by the store; clicking a toast
+ *   removes it immediately.
+ *
+ * @props None (reads toasts from the UI store)
+ *
+ * @emits None
+ *
+ * @example
+ * <UiToastContainer />
+ */
 <script setup lang="ts">
 import { useUiStore } from '@/stores/ui'
 
+/** Access the global toast queue */
 const ui = useUiStore()
 </script>
 
 <template>
+  <!-- Fixed container in top-right corner; pointer-events-none so underlying UI remains clickable -->
   <div class="fixed top-4 right-4 z-100 flex flex-col gap-2 pointer-events-none">
     <transition-group name="slide-in-right" tag="div" class="flex flex-col gap-2">
+      <!-- Each toast: styled by type (success/error/info/warning), click to dismiss -->
       <div
         v-for="toast in ui.toasts"
         :key="toast.id"
@@ -21,6 +37,7 @@ const ui = useUiStore()
         ]"
         @click="ui.removeToast(toast.id)"
       >
+        <!-- Icon varies by toast type -->
         <span
           :class="[
             'w-5 h-5 flex-shrink-0',

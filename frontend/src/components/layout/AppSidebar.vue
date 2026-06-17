@@ -1,3 +1,16 @@
+/**
+ * @component AppSidebar
+ * @description Fixed left sidebar containing the app logo, quick navigation links,
+ *   a notebook list (fetched on mount), and a user info area with logout.
+ *   Visibility is controlled by the UI store (`ui.sidebarOpen`).
+ *
+ * @props None (uses stores only)
+ *
+ * @emits None
+ *
+ * @example
+ * <AppSidebar />
+ */
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -11,18 +24,29 @@ const notebooksStore = useNotebooksStore()
 const ui = useUiStore()
 const auth = useAuthStore()
 
+/** Fetch the user's notebooks when the sidebar mounts */
 onMounted(() => {
   notebooksStore.fetchNotebooks()
 })
 
+/**
+ * Navigate to a notebook's detail page.
+ * @param id - The notebook ID
+ */
 function goToNotebook(id: string) {
   router.push({ name: 'notebook-detail', params: { id } })
 }
 
+/**
+ * Check whether a notebook is currently active (route param matches).
+ * @param id - The notebook ID to check
+ * @returns True if the current route's `id` param matches
+ */
 function isActive(id: string) {
   return route.params.id === id
 }
 
+/** Static quick-navigation items rendered above the notebook list */
 const NAV_ITEMS = [
   { to: '/notes', icon: 'i-ph-note-pencil', label: 'All Notes' },
   { to: '/search', icon: 'i-ph-magnifying-glass', label: 'Search' },
@@ -32,6 +56,7 @@ const NAV_ITEMS = [
 </script>
 
 <template>
+  <!-- Sidebar slides in/out via translate-x based on ui.sidebarOpen -->
   <aside
     :class="[
       'fixed left-0 top-0 bottom-0 z-30 flex flex-col border-r border-gray-200 dark:border-gray-800 transition-all duration-300',
@@ -80,11 +105,13 @@ const NAV_ITEMS = [
       </button>
     </div>
 
-    <!-- Notebook list -->
+    <!-- Notebook list — loading skeletons, empty state, or notebook buttons -->
     <div class="flex-1 overflow-y-auto px-3 pb-4">
+      <!-- Loading skeleton placeholders -->
       <div v-if="notebooksStore.isLoading" class="space-y-2 px-2">
         <div v-for="i in 4" :key="i" class="skeleton h-9 rounded-lg" />
       </div>
+      <!-- Empty state when no notebooks exist -->
       <div v-else-if="notebooksStore.notebooks.length === 0" class="px-3 py-8 text-center">
         <p class="text-xs text-gray-400">No notebooks yet</p>
       </div>
@@ -105,7 +132,7 @@ const NAV_ITEMS = [
       </button>
     </div>
 
-    <!-- User area -->
+    <!-- User area — avatar initial, name, email, and logout button -->
     <div class="p-3 border-t border-gray-200 dark:border-gray-800">
       <div class="flex items-center gap-3 px-2 py-2 rounded-lg">
         <div class="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-800 flex items-center justify-center flex-shrink-0">

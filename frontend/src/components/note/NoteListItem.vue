@@ -1,3 +1,19 @@
+/**
+ * @component NoteListItem
+ * @description A card-style list item representing a single note. Displays the note title,
+ *   a text preview, notebook name, update date, deletion countdown (for archived notes),
+ *   tags, and action buttons (pin, archive, delete).
+ *
+ * @props note - The Note object to display
+ *
+ * @emits click  - Fired when the card body is clicked
+ * @emits delete - Fired when the delete button is clicked
+ * @emits archive - Fired when the archive/restore button is clicked
+ * @emits pin - Fired when the pin/unpin button is clicked
+ *
+ * @example
+ * <NoteListItem :note="note" @click="openNote" @delete="onDelete" @archive="onArchive" @pin="onPin" />
+ */
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Note } from '@/types/note'
@@ -11,6 +27,12 @@ const emit = defineEmits<{
   pin: []
 }>()
 
+/**
+ * Generates a plain-text preview of the note content (up to 150 characters).
+ * Prefers `plain_text`; falls back to recursively extracting text from the
+ * structured `content` JSON.
+ * @returns A truncated preview string
+ */
 function getPreview(): string {
   if (props.note.plain_text) {
     return props.note.plain_text.slice(0, 150)
@@ -26,6 +48,11 @@ function getPreview(): string {
   return 'No content'
 }
 
+/**
+ * Computed countdown until auto-deletion for archived notes.
+ * Archived notes are permanently deleted 7 days after `archived_at`.
+ * Returns `null` for non-archived notes.
+ */
 const deletionCountdown = computed(() => {
   if (!props.note.is_archived || !props.note.archived_at) return null
 
@@ -62,12 +89,14 @@ const deletionCountdown = computed(() => {
 </script>
 
 <template>
+  <!-- Note card — click emits 'click' for navigation -->
   <div
     class="glass-card p-4 cursor-pointer group hover:border-brand-200 dark:hover:border-brand-800 transition-all duration-200"
     @click="emit('click')"
   >
     <div class="flex items-start justify-between gap-4">
       <div class="flex-1 min-w-0">
+        <!-- Title row with status icons -->
         <div class="flex items-center gap-2 mb-1">
           <span v-if="note.is_pinned" class="i-ph-push-pin w-4 h-4 text-brand-500 flex-shrink-0" />
           <span v-if="note.is_archived" class="i-ph-archive-box w-4 h-4 text-amber-500 flex-shrink-0" />
@@ -75,19 +104,23 @@ const deletionCountdown = computed(() => {
             {{ note.title || 'Untitled' }}
           </h3>
         </div>
+        <!-- Content preview (up to 2 lines) -->
         <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-1.5">
           {{ getPreview() }}
         </p>
+        <!-- Notebook badge -->
         <div v-if="note.notebook_name" class="flex items-center gap-1 mb-1.5">
           <span class="i-ph-notebook w-3.5 h-3.5 text-brand-400 flex-shrink-0" />
           <span class="text-xs text-brand-500 dark:text-brand-400 truncate">
             {{ note.notebook_name }}
           </span>
         </div>
+        <!-- Metadata row: date, deletion countdown, tags -->
         <div class="flex items-center gap-3">
           <span class="text-xs text-gray-400 dark:text-gray-500">
             {{ format(new Date(note.updated_at), 'MMM d, yyyy') }}
           </span>
+          <!-- Deletion countdown shown only for archived notes approaching auto-delete -->
           <span
             v-if="deletionCountdown"
             class="text-xs font-medium"
@@ -98,6 +131,7 @@ const deletionCountdown = computed(() => {
             <span class="i-ph-timer w-3 h-3 inline-block mr-0.5 -mt-0.5" />
             {{ deletionCountdown.text }}
           </span>
+          <!-- Show up to 3 tags with a "+N" overflow indicator -->
           <div v-if="note.tags?.length" class="flex gap-1">
             <span
               v-for="tag in note.tags?.slice(0, 3)"
@@ -114,8 +148,9 @@ const deletionCountdown = computed(() => {
         </div>
       </div>
 
-      <!-- Action buttons -->
+      <!-- Hover-revealed action buttons: pin, archive/restore, delete -->
       <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        <!-- Pin/unpin toggle — rotated icon when unpinned -->
         <button
           class="w-7 h-7 flex items-center justify-center rounded-md transition-colors"
           :class="note.is_pinned
@@ -126,6 +161,7 @@ const deletionCountdown = computed(() => {
         >
           <span class="i-ph-push-pin w-4 h-4" :class="{ 'rotate-45': !note.is_pinned }" />
         </button>
+        <!-- Archive/restore toggle — icon changes based on state -->
         <button
           class="w-7 h-7 flex items-center justify-center rounded-md transition-colors"
           :class="note.is_archived
@@ -136,6 +172,7 @@ const deletionCountdown = computed(() => {
         >
           <span :class="note.is_archived ? 'i-ph-arrow-u-up-left' : 'i-ph-archive-box'" class="w-4 h-4" />
         </button>
+        <!-- Delete button -->
         <button
           class="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           title="Delete note"
