@@ -3,21 +3,13 @@
  * @description Reusable button component with variant, size, loading, and disabled states.
  *   Renders a native <button> element with consistent styling.
  *
- * 可复用的按钮组件，支持多种变体、尺寸、加载和禁用状态。渲染原生<button>元素，样式统一。
- *
  * @props variant  - Visual style: 'primary' | 'secondary' | 'ghost' | 'danger' (default: 'secondary')
- *                   视觉样式：主要按钮 | 次要按钮 | 幽灵按钮 | 危险按钮（默认：次要按钮）
  * @props size     - Button size: 'sm' | 'md' | 'lg' (default: 'md')
- *                   按钮尺寸：小 | 中 | 大（默认：中）
  * @props disabled - Whether the button is disabled (default: false)
- *                   是否禁用（默认：false）
  * @props loading  - Whether to show a spinning loader icon (default: false)
- *                   是否显示旋转加载图标（默认：false）
  * @props type     - Native button type: 'button' | 'submit' | 'reset' (default: 'button')
- *                   原生按钮类型：button | submit | reset（默认：button）
  *
  * @emits click - Fired with the native MouseEvent on click
- *                点击时触发，携带原生MouseEvent
  *
  * @example
  * <UiButton variant="primary" size="md" @click="save">Save</UiButton>

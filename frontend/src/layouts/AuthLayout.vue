@@ -3,19 +3,13 @@
  * @description Full-screen centered layout for authentication pages (login, register).
  *   Features decorative gradient blobs, the app logo, a glass-card content area,
  *   and a tagline footer.
- * 
- * 认证页面（登录、注册）的全屏居中布局。
- * 包含装饰性渐变背景块、应用Logo、玻璃卡片内容区域和标语页脚。
  *
  * @props None
- *        无属性
  *
  * @emits None
- *        无事件
  *
  * @example
  * <!-- Used as a route layout wrapping auth pages -->
- * <!-- 用作路由布局包装认证页面 -->
  * <AuthLayout />
  */
 <script setup lang="ts">

@@ -4,15 +4,12 @@
  *   a text preview, notebook name, update date, deletion countdown (for archived notes),
  *   tags, and action buttons (pin, archive, delete).
  *
- * 卡片式列表项组件，表示单个笔记。显示笔记标题、文本预览、笔记本名称、更新日期、
- * 删除倒计时（针对已归档笔记）、标签和操作按钮（置顶、归档、删除）。
+ * @props note - The Note object to display
  *
- * @props note - The Note object to display. 要显示的笔记对象
- *
- * @emits click  - Fired when the card body is clicked. 点击卡片主体时触发
- * @emits delete - Fired when the delete button is clicked. 点击删除按钮时触发
- * @emits archive - Fired when the archive/restore button is clicked. 点击归档/恢复按钮时触发
- * @emits pin - Fired when the pin/unpin button is clicked. 点击置顶/取消置顶按钮时触发
+ * @emits click  - Fired when the card body is clicked
+ * @emits delete - Fired when the delete button is clicked
+ * @emits archive - Fired when the archive/restore button is clicked
+ * @emits pin - Fired when the pin/unpin button is clicked
  *
  * @example
  * <NoteListItem :note="note" @click="openNote" @delete="onDelete" @archive="onArchive" @pin="onPin" />
@@ -34,8 +31,7 @@ const emit = defineEmits<{
  * Generates a plain-text preview of the note content (up to 150 characters).
  * Prefers `plain_text`; falls back to recursively extracting text from the
  * structured `content` JSON.
- * 生成笔记内容的纯文本预览（最多150字符）。优先使用`plain_text`；回退到从结构化的`content`JSON中递归提取文本。
- * @returns A truncated preview string. 截断后的预览字符串
+ * @returns A truncated preview string
  */
 function getPreview(): string {
   if (props.note.plain_text) {
@@ -56,8 +52,6 @@ function getPreview(): string {
  * Computed countdown until auto-deletion for archived notes.
  * Archived notes are permanently deleted 7 days after `archived_at`.
  * Returns `null` for non-archived notes.
- * 已归档笔记自动删除的倒计时计算。归档笔记在`archived_at`后7天被永久删除。
- * 对于非归档笔记返回`null`。
  */
 const deletionCountdown = computed(() => {
   if (!props.note.is_archived || !props.note.archived_at) return null

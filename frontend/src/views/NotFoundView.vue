@@ -3,17 +3,12 @@
  * @component NotFoundView
  * @description 404 page displayed when the user navigates to an undefined route.
  * Shows a ghost icon, "404" heading, and a button to navigate back to the dashboard.
- * 
- * 当用户导航到未定义的路由时显示的404页面。
- * 显示幽灵图标、"404"标题和返回仪表板的按钮。
  *
  * @dependencies
  * - UiButton: shared UI button component
- *             共享UI按钮组件
  *
  * @example
  * <!-- Rendered as a catch-all fallback route -->
- * <!-- 作为兜底路由渲染 -->
  * <NotFoundView />
  */
 import UiButton from '@/components/ui/UiButton.vue'

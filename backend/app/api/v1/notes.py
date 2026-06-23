@@ -1,11 +1,8 @@
 """Note management endpoints.
-笔记管理端点
 
 Provides CRUD operations for notes, including listing, creating,
 updating, deleting, pinning, archiving, and tag attachment/detachment.
 Notes are scoped to notebooks but can also be queried globally.
-提供笔记的CRUD操作，包括列出、创建、更新、删除、置顶、归档和标签附加/分离。
-笔记属于笔记本范围，但也可以全局查询。
 """
 
 import uuid

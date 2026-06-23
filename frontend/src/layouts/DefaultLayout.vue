@@ -3,19 +3,13 @@
  * @description Main authenticated layout with a collapsible sidebar, a sticky header,
  *   and a content area. Registers a global Ctrl+K shortcut to focus the search bar.
  *   Includes a mobile overlay that closes the sidebar on tap.
- * 
- * 主要的已认证布局，包含可折叠侧边栏、粘性头部和内容区域。
- * 注册全局Ctrl+K快捷键聚焦搜索栏。包含移动端遮罩，点击可关闭侧边栏。
  *
  * @props None
- *        无属性
  *
  * @emits None
- *        无事件
  *
  * @example
  * <!-- Used as a route layout wrapping authenticated pages -->
- * <!-- 用作路由布局包装已认证页面 -->
  * <DefaultLayout />
  */
 <script setup lang="ts">
@@ -25,16 +19,12 @@ import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 
 const ui = useUiStore()
-/** Template ref to AppHeader for calling `focusSearch()`
- * AppHeader的模板引用，用于调用`focusSearch()`
- */
+/** Template ref to AppHeader for calling `focusSearch()` */
 const headerRef = ref<InstanceType<typeof AppHeader> | null>(null)
 
 /**
  * Global keyboard handler — focuses the search bar on Ctrl+K.
- * 全局键盘处理器——Ctrl+K聚焦搜索栏。
  * @param e - The keyboard event
- *            键盘事件
  */
 function handleGlobalKeydown(e: KeyboardEvent) {
   if (e.ctrlKey && e.key === 'k') {
@@ -43,16 +33,12 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   }
 }
 
-/** Register the global Ctrl+K shortcut on mount
- * 挂载时注册全局Ctrl+K快捷键
- */
+/** Register the global Ctrl+K shortcut on mount */
 onMounted(() => {
   document.addEventListener('keydown', handleGlobalKeydown)
 })
 
-/** Clean up the global keyboard listener on unmount
- * 卸载时清理全局键盘监听器
- */
+/** Clean up the global keyboard listener on unmount */
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleGlobalKeydown)
 })

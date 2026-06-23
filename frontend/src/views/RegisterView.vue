@@ -4,34 +4,21 @@
  * @description Registration form view for creating a new user account.
  * Validates required fields, password match, and minimum length before submission.
  * On success, the auth store handles redirect to the dashboard.
- * 
- * 创建新用户账户的注册表单视图。
- * 提交前验证必填字段、密码匹配和最小长度。
- * 成功时，认证状态管理处理重定向到仪表板。
  *
  * Key features:
  * - Username, email, optional display name, and password fields
- *   用户名、邮箱、可选显示名称和密码字段
  * - Client-side validation: required fields, password match, min length
- *   客户端验证：必填字段、密码匹配、最小长度
  * - Error message display from API responses
- *   显示API响应的错误消息
  * - Loading state during registration
- *   注册期间的加载状态
  * - Link to the login page
- *   指向登录页面的链接
  *
  * @dependencies
  * - useAuthStore: handles register API call and auth state
- *                 处理注册API调用和认证状态
  * - useUiStore: displays success toast
- *               显示成功Toast
  * - UiButton, UiInput: shared UI components
- *                      共享UI组件
  *
  * @example
  * <!-- Route: /auth/register -->
- * <!-- 路由: /auth/register -->
  * <RegisterView />
  */
 import { ref } from 'vue'
@@ -43,41 +30,25 @@ import UiInput from '@/components/ui/UiInput.vue'
 const auth = useAuthStore()
 const ui = useUiStore()
 
-/** Desired username
- * 期望的用户名
- */
+/** Desired username */
 const username = ref('')
-/** User email address
- * 用户邮箱地址
- */
+/** User email address */
 const email = ref('')
-/** Desired password
- * 期望的密码
- */
+/** Desired password */
 const password = ref('')
-/** Password confirmation for match validation
- * 用于密码匹配验证的确认密码
- */
+/** Password confirmation for match validation */
 const confirmPassword = ref('')
-/** Optional display name
- * 可选的显示名称
- */
+/** Optional display name */
 const displayName = ref('')
-/** Whether the registration request is in progress
- * 注册请求是否正在进行中
- */
+/** Whether the registration request is in progress */
 const isLoading = ref(false)
-/** Error message from validation or API response
- * 验证或API响应的错误消息
- */
+/** Error message from validation or API response */
 const error = ref('')
 
 /**
  * Handles form submission: validates required fields, password match,
  * and minimum password length, then calls the auth store's register method.
  * Displays a success toast or error message accordingly.
- * 处理表单提交：验证必填字段、密码匹配和最小密码长度，然后调用认证状态管理的注册方法。
- * 相应地显示成功Toast或错误消息。
  */
 async function handleSubmit() {
   error.value = ''

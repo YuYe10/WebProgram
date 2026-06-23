@@ -2,107 +2,58 @@
  * @module types/notebook
  * @description Type definitions for notebooks — containers that group related
  * notes together. Notebooks support archiving and custom display properties.
- * 笔记本的类型定义——将相关笔记分组在一起的容器。笔记本支持归档和自定义显示属性。
  */
 
-/** Represents a notebook returned by the API.
- * 表示API返回的笔记本。
- */
+/** Represents a notebook returned by the API. */
 export interface Notebook {
-  /** Unique identifier (UUID).
-   * 唯一标识符(UUID)。
-   */
+  /** Unique identifier (UUID). */
   id: string
-  /** ID of the owning user.
-   * 拥有者用户的ID。
-   */
+  /** ID of the owning user. */
   user_id: string
-  /** Notebook name.
-   * 笔记本名称。
-   */
+  /** Notebook name. */
   name: string
-  /** Optional description of the notebook.
-   * 笔记本的可选描述。
-   */
+  /** Optional description of the notebook. */
   description: string | null
-  /** Emoji or icon identifier for display.
-   * 用于显示的表情符号或图标标识符。
-   */
+  /** Emoji or icon identifier for display. */
   icon: string
-  /** CSS color value for display.
-   * 用于显示的CSS颜色值。
-   */
+  /** CSS color value for display. */
   color: string
-  /** Sort order index for manual ordering (lower values appear first).
-   * 手动排序的排序顺序索引（值越小越靠前）。
-   */
+  /** Sort order index for manual ordering (lower values appear first). */
   sort_order: number
-  /** Whether the notebook is archived.
-   * 笔记本是否已归档。
-   */
+  /** Whether the notebook is archived. */
   is_archived: boolean
-  /** ISO-8601 timestamp when the notebook was created.
-   * 笔记本创建时的ISO-8601时间戳。
-   */
+  /** ISO-8601 timestamp when the notebook was created. */
   created_at: string
-  /** ISO-8601 timestamp when the notebook was last updated.
-   * 笔记本最后更新时的ISO-8601时间戳。
-   */
+  /** ISO-8601 timestamp when the notebook was last updated. */
   updated_at: string
-  /** Number of notes in the notebook (optional, populated by some endpoints).
-   * 笔记本中的笔记数量（可选，由某些端点填充）。
-   */
+  /** Number of notes in the notebook (optional, populated by some endpoints). */
   note_count?: number
 }
 
-/** Payload for creating a new notebook.
- * 创建新笔记本的负载。
- */
+/** Payload for creating a new notebook. */
 export interface NotebookCreateRequest {
-  /** Notebook name (required).
-   * 笔记本名称（必填）。
-   */
+  /** Notebook name (required). */
   name: string
-  /** Optional description.
-   * 可选描述。
-   */
+  /** Optional description. */
   description?: string
-  /** Emoji or icon identifier (optional).
-   * 表情符号或图标标识符（可选）。
-   */
+  /** Emoji or icon identifier (optional). */
   icon?: string
-  /** CSS color value (optional).
-   * CSS颜色值（可选）。
-   */
+  /** CSS color value (optional). */
   color?: string
 }
 
-/** Payload for updating an existing notebook. All fields are optional.
- * 更新现有笔记本的负载。所有字段都是可选的。
- */
+/** Payload for updating an existing notebook. All fields are optional. */
 export interface NotebookUpdateRequest {
-  /** New name.
-   * 新名称。
-   */
+  /** New name. */
   name?: string
-  /** New description.
-   * 新描述。
-   */
+  /** New description. */
   description?: string
-  /** New icon.
-   * 新图标。
-   */
+  /** New icon. */
   icon?: string
-  /** New color.
-   * 新颜色。
-   */
+  /** New color. */
   color?: string
-  /** New sort order index.
-   * 新的排序顺序索引。
-   */
+  /** New sort order index. */
   sort_order?: number
-  /** Toggle archived status.
-   * 切换归档状态。
-   */
+  /** Toggle archived status. */
   is_archived?: boolean
 }

@@ -2,28 +2,20 @@
  * @component App
  * @description Root application component. Applies the resolved theme class to the root element,
  *   renders the current route with a page transition, and mounts the global toast container.
- * 
- * 根应用组件。将解析的主题类应用到根元素，
- * 使用页面过渡渲染当前路由，并挂载全局Toast容器。
  *
  * @props None
- *        无属性
  *
  * @emits None
- *        无事件
  *
  * @example
  * <!-- Mounted by main.ts -->
- * <!-- 由main.ts挂载 -->
  * <App />
  */
 <script setup lang="ts">
 import { useUiStore } from '@/stores/ui'
 import UiToastContainer from '@/components/ui/UiToastContainer.vue'
 
-/** Access the resolved theme for the root class binding
- * 访问解析的主题用于根类绑定
- */
+/** Access the resolved theme for the root class binding */
 const ui = useUiStore()
 </script>
 

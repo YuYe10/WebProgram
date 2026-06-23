@@ -3,17 +3,11 @@
  * @description A centered empty-state placeholder with an icon, title, description,
  *   and an optional default slot for action buttons.
  *
- * 居中的空状态占位组件，包含图标、标题、描述和可选的操作按钮插槽。
- *
  * @props icon        - CSS class for the icon (default: 'i-ph-notepad')
- *                      图标的CSS类（默认：'i-ph-notepad'）
  * @props title       - Heading text (default: 'No items found')
- *                      标题文本（默认：'No items found'）
  * @props description - Subtitle text (default: 'Get started by creating your first item.')
- *                      副标题文本（默认：'Get started by creating your first item.'）
  *
  * @emits None
- *        无事件
  *
  * @example
  * <UiEmpty icon="i-ph-note" title="No notes" description="Create your first note.">

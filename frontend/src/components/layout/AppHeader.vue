@@ -3,15 +3,10 @@
  * @description Sticky top header bar with a search bar (autocomplete + keyboard navigation),
  *   breadcrumb slot, theme toggle, and an actions slot. Exposes `focusSearch()` for the
  *   global Ctrl+K shortcut.
- * 
- * 粘性顶部头部栏，包含搜索栏（自动补全+键盘导航）、面包屑插槽、主题切换和操作插槽。
- * 暴露`focusSearch()`方法供DefaultLayout中的全局Ctrl+K快捷键使用。
  *
  * @props None (uses stores only)
- *        无属性（仅使用状态管理）
  *
  * @emits None
- *        无事件
  *
  * @example
  * <AppHeader>
@@ -31,40 +26,24 @@ const router = useRouter()
 const ui = useUiStore()
 const auth = useAuthStore()
 
-/** Current value of the search input
- * 搜索输入框的当前值
- */
+/** Current value of the search input */
 const searchQuery = ref('')
-/** Template ref to the search <input> element
- * 搜索<input>元素的模板引用
- */
+/** Template ref to the search <input> element */
 const searchInputRef = ref<HTMLInputElement | null>(null)
-/** Whether the autocomplete dropdown is visible
- * 自动补全下拉菜单是否可见
- */
+/** Whether the autocomplete dropdown is visible */
 const showDropdown = ref(false)
-/** Autocomplete suggestion results
- * 自动补全建议结果
- */
+/** Autocomplete suggestion results */
 const suggestions = ref<Note[]>([])
-/** Whether a search request is in flight
- * 搜索请求是否正在进行中
- */
+/** Whether a search request is in flight */
 const isSearching = ref(false)
-/** Index of the currently highlighted suggestion (-1 = none)
- * 当前高亮建议的索引（-1表示没有）
- */
+/** Index of the currently highlighted suggestion (-1 = none) */
 const selectedIndex = ref(-1)
-/** Timer handle for input debouncing
- * 输入防抖的计时器句柄
- */
+/** Timer handle for input debouncing */
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 /**
  * Focuses and selects the search input text.
- * 聚焦并选中搜索输入框文本。
  * Exposed for the global Ctrl+K shortcut in DefaultLayout.
- * 暴露供DefaultLayout中的全局Ctrl+K快捷键使用。
  */
 function focusSearch() {
   searchInputRef.value?.focus()
@@ -75,9 +54,7 @@ defineExpose({ focusSearch })
 
 /**
  * Navigates to the full search results page with the current query.
- * 使用当前查询导航到完整搜索结果页面。
  * Called on form submit (Enter) when no suggestion is selected.
- * 当没有选中建议时在表单提交（Enter）时调用。
  */
 function handleSearch() {
   if (searchQuery.value.trim()) {
@@ -89,9 +66,7 @@ function handleSearch() {
 
 /**
  * Navigates to the editor for a selected suggestion note.
- * 导航到选中建议笔记的编辑器。
  * @param note - The note to open
- *               要打开的笔记
  */
 function selectSuggestion(note: Note) {
   showDropdown.value = false
@@ -101,9 +76,7 @@ function selectSuggestion(note: Note) {
 
 /**
  * Fetches autocomplete suggestions from the search API.
- * 从搜索API获取自动补全建议。
  * @param query - The search string (minimum 1 character)
- *                搜索字符串（至少1个字符）
  */
 async function fetchSuggestions(query: string) {
   if (query.length < 1) {
@@ -126,9 +99,7 @@ async function fetchSuggestions(query: string) {
   }
 }
 
-/** Debounced handler for input changes — fetches suggestions after 200ms idle
- * 输入变化的防抖处理器——空闲200毫秒后获取建议
- */
+/** Debounced handler for input changes — fetches suggestions after 200ms idle */
 function onInputChange() {
   if (debounceTimer) clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
@@ -136,9 +107,7 @@ function onInputChange() {
   }, 200)
 }
 
-/** Re-opens the dropdown on focus if suggestions are available
- * 如果有建议，在聚焦时重新打开下拉菜单
- */
+/** Re-opens the dropdown on focus if suggestions are available */
 function onInputFocus() {
   if (searchQuery.value.trim() && suggestions.value.length > 0) {
     showDropdown.value = true
@@ -147,9 +116,7 @@ function onInputFocus() {
   }
 }
 
-/** Closes the dropdown on blur with a delay to allow suggestion clicks
- * 在失焦时延迟关闭下拉菜单，以允许点击建议
- */
+/** Closes the dropdown on blur with a delay to allow suggestion clicks */
 function onInputBlur() {
   setTimeout(() => {
     showDropdown.value = false
@@ -158,13 +125,9 @@ function onInputBlur() {
 
 /**
  * Handles keyboard navigation within the autocomplete dropdown.
- * 处理自动补全下拉菜单中的键盘导航。
  * - Escape: close dropdown and blur input
- *           关闭下拉菜单并失焦输入框
  * - ArrowDown/ArrowUp: move selection
- *                      移动选择
  * - Enter: select highlighted suggestion or submit search
- *          选中高亮建议或提交搜索
  */
 function onInputKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
@@ -192,22 +155,16 @@ function onInputKeydown(e: KeyboardEvent) {
 
 /**
  * Truncates plain text for snippet display in the dropdown.
- * 截断纯文本用于下拉菜单中的片段显示。
  * @param text - The full text to truncate
- *               要截断的完整文本
  * @param maxLen - Maximum character length (default 80)
- *                 最大字符长度（默认80）
  * @returns Truncated string with ellipsis if needed, or 'No content'
- *          如果需要，返回带省略号的截断字符串，否则返回'No content'
  */
 function snippet(text: string | null, maxLen = 80): string {
   if (!text) return 'No content'
   return text.length > maxLen ? text.slice(0, maxLen) + '...' : text
 }
 
-/** Resets the selected index when the dropdown is closed
- * 当下拉菜单关闭时重置选中索引
- */
+/** Resets the selected index when the dropdown is closed */
 watch(showDropdown, (val) => {
   if (!val) selectedIndex.value = -1
 })

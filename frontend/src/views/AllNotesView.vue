@@ -3,32 +3,21 @@
  * @component AllNotesView
  * @description Displays a paginated list of all notes across notebooks,
  * with optional filtering by tag via query parameter.
- * 
- * 显示跨笔记本的所有笔记的分页列表，支持通过查询参数按标签过滤。
  *
  * Key features:
  * - Paginated note list with "Load more" support
- *   带"加载更多"支持的分页笔记列表
  * - Tag filtering via `?tag_id=` query parameter
- *   通过`?tag_id=`查询参数进行标签过滤
  * - Archive, pin, and delete actions per note
- *   每条笔记的归档、置顶和删除操作
  * - Skeleton loading states and empty states
- *   骨架加载状态和空状态
  *
  * @dependencies
  * - useNotesStore: note data management
- *                  笔记数据管理
  * - useTagsStore: tag data for filter indicator
- *                 过滤器指示器的标签数据
  * - useUiStore: toast notifications
- *               Toast通知
  * - NoteListItem: reusable note card component
- *                 可复用的笔记卡片组件
  *
  * @example
  * <!-- Route: /all-notes or /all-notes?tag_id=abc123 -->
- * <!-- 路由: /all-notes 或 /all-notes?tag_id=abc123 -->
  * <AllNotesView />
  */
 import { computed, onMounted, ref, watch } from 'vue'
@@ -49,51 +38,31 @@ const notesStore = useNotesStore()
 const tagsStore = useTagsStore()
 const ui = useUiStore()
 
-/** Current page of notes
- * 当前页面的笔记列表
- */
+/** Current page of notes */
 const notes = ref<Note[]>([])
-/** Whether notes are being loaded
- * 笔记是否正在加载中
- */
+/** Whether notes are being loaded */
 const isLoading = ref(true)
-/** Total number of notes matching the current filter
- * 匹配当前过滤器的笔记总数
- */
+/** Total number of notes matching the current filter */
 const total = ref(0)
-/** Current page number for pagination
- * 分页的当前页码
- */
+/** Current page number for pagination */
 const page = ref(1)
-/** Number of notes per page
- * 每页笔记数
- */
+/** Number of notes per page */
 const pageSize = 20
-/** Whether more pages are available to load
- * 是否有更多页面可加载
- */
+/** Whether more pages are available to load */
 const hasMore = ref(false)
 
-/** Tag ID from the query string, used to filter notes
- * 查询字符串中的标签ID，用于过滤笔记
- */
+/** Tag ID from the query string, used to filter notes */
 const tagId = computed(() => (route.query.tag_id as string) || '')
-/** The full tag object for the active filter, if any
- * 活动过滤器的完整标签对象（如果有）
- */
+/** The full tag object for the active filter, if any */
 const activeTag = computed(() => tagsStore.tags.find(t => t.id === tagId.value))
 
-/** Fetch tags and notes on mount
- * 挂载时获取标签和笔记
- */
+/** Fetch tags and notes on mount */
 onMounted(() => {
   tagsStore.fetchTags()
   fetchNotes()
 })
 
-/** Reset to page 1 and re-fetch when the tag filter changes
- * 标签过滤器变化时重置到第1页并重新获取
- */
+/** Reset to page 1 and re-fetch when the tag filter changes */
 watch(tagId, () => {
   page.value = 1
   fetchNotes()
@@ -101,9 +70,7 @@ watch(tagId, () => {
 
 /**
  * Fetches the first page of notes, optionally filtered by tag.
- * 获取第一页笔记，可选地按标签过滤。
  * Replaces the current notes list with the response items.
- * 用响应项替换当前笔记列表。
  */
 async function fetchNotes() {
   isLoading.value = true
@@ -126,9 +93,7 @@ async function fetchNotes() {
 
 /**
  * Loads the next page of notes and appends them to the list.
- * 加载下一页笔记并追加到列表。
  * Reverts the page number on failure.
- * 失败时回滚页码。
  */
 async function loadMore() {
   page.value++
@@ -149,17 +114,13 @@ async function loadMore() {
 
 /**
  * Navigates to the note editor for the given note.
- * 导航到给定笔记的编辑器。
  * @param note - The note to open
- *               要打开的笔记
  */
 function goToNote(note: Note) {
   router.push({ name: 'note-edit', params: { notebookId: note.notebook_id, noteId: note.id } })
 }
 
-/** Removes the tag filter by navigating to the base all-notes route
- * 通过导航到基础all-notes路由来移除标签过滤器
- */
+/** Removes the tag filter by navigating to the base all-notes route */
 function clearTagFilter() {
   router.replace({ name: 'all-notes' })
 }
