@@ -1,24 +1,4 @@
-/**
- * @component UiModal
- * @description A modal dialog teleported to the body, with backdrop, Escape-to-close,
- *   title bar, body slot, and optional footer slot. Manages body scroll lock while open.
- *
- * @props open  - Whether the modal is visible (supports v-model:open)
- * @props title - Optional title displayed in the modal header
- * @props size  - Width preset: 'sm' | 'md' | 'lg' (default: 'md')
- *
- * @emits update:open - Emitted with `false` when the modal should close (v-model support)
- * @emits close       - Emitted when the modal is closed (backdrop click, Escape, or X button)
- *
- * @example
- * <UiModal v-model:open="showDialog" title="Confirm" size="sm">
- *   <p>Are you sure?</p>
- *   <template #footer>
- *     <UiButton @click="showDialog = false">Cancel</UiButton>
- *     <UiButton variant="primary" @click="confirm">Confirm</UiButton>
- *   </template>
- * </UiModal>
- */
+
 <script setup lang="ts">
 import { watch } from 'vue'
 

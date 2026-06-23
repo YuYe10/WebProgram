@@ -1,19 +1,4 @@
-/**
- * @component AppHeader
- * @description Sticky top header bar with a search bar (autocomplete + keyboard navigation),
- *   breadcrumb slot, theme toggle, and an actions slot. Exposes `focusSearch()` for the
- *   global Ctrl+K shortcut.
- *
- * @props None (uses stores only)
- *
- * @emits None
- *
- * @example
- * <AppHeader>
- *   <template #breadcrumb>My Notebook</template>
- *   <template #actions><button>New</button></template>
- * </AppHeader>
- */
+
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'

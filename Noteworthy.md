@@ -4,7 +4,7 @@
 
 ### 1.1 系统架构
 
-Noteworthy 采用前后端分离的单体应用架构，后端提供 RESTful API，前端为基于 Vue 3 的单页应用（SPA）。数据库使用 PostgreSQL 16，通过 Docker Compose 编排部署。
+Noteworthy 采用经典的前后端分离架构，后端提供标准化的 RESTful API 接口，前端是基于 Vue 3 的单页应用（SPA）。数据库选用 PostgreSQL 16，通过 Docker Compose 进行容器化部署，确保开发、测试和生产环境的一致性。
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -30,34 +30,73 @@ Noteworthy 采用前后端分离的单体应用架构，后端提供 RESTful API
 └─────────────────────────────────────────────────────────┘
 ```
 
-### 1.2 技术栈
+### 1.2 技术栈详解
 
-| 层面 | 技术 | 版本 | 选型理由 |
-|------|------|------|----------|
-| 前端框架 | Vue 3 + TypeScript | 3.5 / 5.7 | Composition API + script setup 语法简洁高效，TypeScript 全量类型覆盖 |
-| 构建工具 | Vite | 6.0 | 原生 ESM 热更新，冷启动低于 300ms |
-| 状态管理 | Pinia | 2.3 | Vue 3 官方推荐，Setup Stores 与 Composition API 风格统一 |
-| 样式方案 | UnoCSS | 0.65 | 原子化按需生成，零运行时开销，兼容 Tailwind 生态 |
-| 富文本 | Tiptap (ProseMirror) | 2.10 | 可扩展架构，支持表格/代码高亮/任务列表等企业级功能 |
-| 图标 | Phosphor Icons | 2.2 | 6 种粗细变体，支持 tree-shaking |
-| 动画 | @vueuse/motion | 2.2 | 声明式动画，与 Vue 3 深度集成 |
-| 后端框架 | FastAPI | 0.115 | 原生 async/await，自动生成 OpenAPI 文档 |
-| 数据校验 | Pydantic | 2.10 | v2 性能提升 5-50 倍，from_attributes 支持 ORM 转换 |
-| ORM | SQLAlchemy | 2.0 | 声明式映射 + select 风格 + 异步引擎 |
-| 数据库驱动 | asyncpg | 0.30 | PostgreSQL 异步驱动，性能优于 psycopg |
-| 数据库 | PostgreSQL | 16 | JSONB 原生存储 Tiptap 文档，pg_trgm 加速模糊搜索 |
-| 认证 | JWT (HS256) | python-jose 3.3 | 无状态鉴权，双令牌机制兼顾安全与体验 |
-| 密码哈希 | BCrypt | 4.0 | 12 轮自适应加盐，抗暴力破解 |
-| 迁移 | Alembic | 1.14 | 数据库版本管理，支持升级与回滚 |
-| 容器化 | Docker Compose | - | postgres:16-alpine 镜像，healthcheck 保障启动顺序 |
+下面详细介绍项目中使用的各项技术，包括它们的具体应用场景、实现方式以及解决的核心问题。
 
-### 1.3 关键设计决策
+| 层面 | 技术 | 版本 | 应用场景与解决的问题 |
+|------|------|------|---------------------|
+| 前端框架 | Vue 3 + TypeScript | 3.5 / 5.7 | **为什么选择它？** Vue 3 的 Composition API 让代码组织更加灵活，`script setup` 语法简洁高效。TypeScript 提供全量类型覆盖，在开发阶段就能发现潜在错误，大幅提升代码质量和维护效率。**实际应用**：前端所有组件和状态管理都基于 Vue 3 Composition API 开发。 |
+| 构建工具 | Vite | 6.0 | **核心优势**：原生 ESM 热更新，冷启动速度低于 300ms，大大提升开发体验。**解决的问题**：传统构建工具如 Webpack 启动慢、热更新不及时，Vite 通过浏览器原生 ES Module 支持，实现毫秒级热更新。 |
+| 状态管理 | Pinia | 2.3 | **为什么选择它？** Vue 3 官方推荐的状态管理库，Setup Stores 与 Composition API 风格统一，无需额外配置即可使用。**实际应用**：管理用户认证状态、笔记数据、编辑器状态等全局数据，支持持久化存储。 |
+| 样式方案 | UnoCSS | 0.65 | **核心优势**：原子化 CSS，按需生成样式，零运行时开销，完全兼容 Tailwind CSS 生态。**解决的问题**：传统 CSS 类名冗长，样式冲突频繁，UnoCSS 通过原子类实现高效样式管理。 |
+| 富文本 | Tiptap (ProseMirror) | 2.10 | **为什么选择它？** 可扩展架构，支持表格、代码高亮、任务列表等企业级功能。**实际应用**：笔记编辑器核心组件，支持复杂文档编辑。 |
+| 图标 | Phosphor Icons | 2.2 | **应用场景**：UI 界面图标展示，提供 6 种粗细变体，支持 tree-shaking 按需加载。**解决的问题**：图标库体积大、样式不统一。 |
+| 动画 | @vueuse/motion | 2.2 | **核心优势**：声明式动画，与 Vue 3 深度集成。**实际应用**：页面过渡动画、组件交互动效，提升用户体验。 |
+| 后端框架 | FastAPI | 0.115 | **为什么选择它？** 原生支持 async/await，自动生成 OpenAPI 文档，性能优异。**解决的问题**：传统同步框架在高并发场景下性能瓶颈明显，FastAPI 异步特性支持数千并发连接。 |
+| 数据校验 | Pydantic | 2.10 | **核心优势**：v2 版本性能提升 5-50 倍，`from_attributes` 支持 ORM 对象直接转换为响应对象。**实际应用**：请求参数校验、响应数据序列化。 |
+| ORM | SQLAlchemy | 2.0 | **为什么选择它？** 声明式映射 + select 风格 + 异步引擎，提供强大的数据库操作能力。**实际应用**：数据库模型定义、复杂查询构建。 |
+| 数据库驱动 | asyncpg | 0.30 | **核心优势**：PostgreSQL 异步驱动，性能优于传统同步驱动 psycopg。**解决的问题**：同步数据库操作在高并发场景下会阻塞线程。 |
+| 数据库 | PostgreSQL | 16 | **为什么选择它？** 原生支持 JSONB 类型存储复杂文档，pg_trgm 扩展加速模糊搜索。**实际应用**：存储笔记内容（JSONB）、用户数据、标签等。 |
+| 认证 | JWT (HS256) | python-jose 3.3 | **核心优势**：无状态鉴权，双令牌机制兼顾安全与用户体验。**解决的问题**：传统 Session 认证在分布式部署中难以扩展。 |
+| 密码哈希 | BCrypt | 4.0 | **为什么选择它？** 12 轮自适应加盐，抗暴力破解能力强。**实际应用**：用户密码加密存储。 |
+| 迁移 | Alembic | 1.14 | **核心优势**：数据库版本管理，支持升级与回滚。**实际应用**：数据库结构变更管理。 |
+| 容器化 | Docker Compose | - | **应用场景**：统一开发环境，简化部署流程。**解决的问题**：开发环境配置繁琐，生产环境部署复杂。 |
 
-1. **异步全栈**：从数据库驱动（asyncpg）到 ORM（SQLAlchemy async）再到 Web 框架（FastAPI async），全链路异步，单进程可处理数千并发连接。
-2. **四层分离架构**：Router → Service → Repository → Model，严格单一职责。Router 仅处理 HTTP 协议相关逻辑，Service 封装业务规则与权限校验，Repository 提供泛型数据访问，Model 定义 ORM 映射。
-3. **JSONB 存储 Tiptap 文档**：PostgreSQL 的 JSONB 类型原生支持 Tiptap 编辑器的 JSON 输出格式，无需额外的序列化/反序列化层，同时保留了结构化查询能力。
-4. **plain_text 冗余字段**：从 Tiptap JSON 中提取纯文本存入独立字段，避免搜索时实时解析 JSON，ILIKE 查询直接命中该字段。
-5. **双层图片清理**：即时清理（笔记更新/删除时 diff 图片引用集合）+ 定时兜底（每小时全量扫描），确保零泄漏。
+### 1.3 关键设计决策详解
+
+#### 1.3.1 异步全栈设计
+
+**什么是异步全栈？** 从数据库驱动（asyncpg）到 ORM（SQLAlchemy async）再到 Web 框架（FastAPI async），整个技术栈都支持异步操作。
+
+**解决的核心问题**：传统同步架构中，每个请求会占用一个线程，当并发量大时，线程池会耗尽。异步架构使用协程（Coroutine），一个线程可以处理数千个并发连接，大幅提升系统吞吐量。
+
+**实际效果**：单进程可处理数千并发连接，资源利用率更高。
+
+#### 1.3.2 四层分离架构
+
+**架构层次**：Router → Service → Repository → Model
+
+**各层职责**：
+- **Router（API层）**：仅处理 HTTP 协议相关逻辑，如参数解析、响应封装
+- **Service（业务层）**：封装业务规则与权限校验
+- **Repository（数据层）**：提供泛型数据访问操作
+- **Model（ORM层）**：定义数据库表映射
+
+**解决的核心问题**：单一职责原则，代码解耦，易于测试和维护。
+
+#### 1.3.3 JSONB 存储 Tiptap 文档
+
+**为什么使用 JSONB？** PostgreSQL 的 JSONB 类型有以下优势：
+1. 原生支持 Tiptap 编辑器的 JSON 输出格式，无需额外序列化/反序列化
+2. 支持结构化查询，可以用 PostgreSQL 的 JSON 操作符查询特定节点
+3. 存储时自动压缩，比 TEXT 更省空间
+
+**实际应用**：笔记内容直接以 JSON 格式存储，保持编辑器的完整结构信息。
+
+#### 1.3.4 plain_text 冗余字段
+
+**设计思路**：从 Tiptap JSON 中提取纯文本存入独立的 `plain_text` 字段。
+
+**解决的核心问题**：如果每次搜索都实时解析 JSON，性能会很差。通过冗余字段，搜索时直接使用 `ILIKE` 查询 `plain_text` 字段，大幅提升搜索性能。
+
+#### 1.3.5 双层图片清理机制
+
+**设计思路**：
+1. **即时清理**：笔记更新/删除时，对比新旧图片引用集合，删除不再使用的图片
+2. **定时兜底**：每小时全量扫描，清理遗漏的孤立文件
+
+**解决的核心问题**：防止图片文件泄漏，确保存储空间不被无效文件占用。即使应用崩溃或事务回滚导致即时清理失败，定时任务也能兜底清理。
 
 ---
 
@@ -65,7 +104,7 @@ Noteworthy 采用前后端分离的单体应用架构，后端提供 RESTful API
 
 ### 2.1 数据模型层（Models）
 
-所有模型继承自 `DeclarativeBase`，主键统一使用 UUID（`uuid.uuid4`），时间字段使用 `DateTime(timezone=True)` 配合 `server_default=func.now()`。
+所有模型继承自 `DeclarativeBase`，主键统一使用 UUID，时间字段使用带时区的 DateTime。这样设计可以确保数据的唯一性和时间准确性。
 
 #### 2.1.1 User 模型
 
@@ -83,17 +122,17 @@ class User(Base):
     created_at    = Column(DateTime(timezone=True), server_default=func.now())
     updated_at    = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    # 关系
+    # 关系定义
     notebooks = relationship("Notebook", back_populates="user", cascade="all, delete-orphan")
     notes     = relationship("Note", back_populates="user", cascade="all, delete-orphan",
-                             foreign_keys="Note.user_id")  # 显式指定避免歧义
+                             foreign_keys="Note.user_id")
     tags      = relationship("Tag", back_populates="user", cascade="all, delete-orphan")
 ```
 
-设计要点：
-- `username` 和 `email` 均建立唯一索引，注册时在 Service 层做唯一性校验，数据库层通过唯一约束兜底。
-- `notes` 关系需要显式指定 `foreign_keys`，因为 Note 模型同时有 `notebook_id`（指向 Notebook）和 `user_id`（指向 User）两个外键，SQLAlchemy 无法自动推断。
-- `cascade="all, delete-orphan"` 确保删除用户时级联删除其所有数据。
+**设计要点说明**：
+- `username` 和 `email` 都建立了唯一索引，确保数据唯一性。注册时在 Service 层做校验，数据库层通过唯一约束兜底。
+- `notes` 关系需要显式指定 `foreign_keys`，因为 Note 模型有两个外键（`notebook_id` 和 `user_id`），SQLAlchemy 无法自动推断。
+- `cascade="all, delete-orphan"` 确保删除用户时，其所有笔记本、笔记和标签都会被级联删除。
 
 #### 2.1.2 Notebook 模型
 
@@ -107,21 +146,21 @@ class Notebook(Base):
     name        = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     icon        = Column(String(50), default="i-ph-notebook")    # Phosphor Icons 类名
-    color       = Column(String(7), default="#6366f1")            # HEX 颜色
+    color       = Column(String(7), default="#6366f1")            # HEX 颜色值
     sort_order  = Column(Integer, default=0)                      # 排序权重
     is_archived = Column(Boolean, default=False)
     created_at  = Column(DateTime(timezone=True), server_default=func.now())
     updated_at  = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    # 关系
+    # 关系定义
     user  = relationship("User", back_populates="notebooks")
     notes = relationship("Note", back_populates="notebook", cascade="all, delete-orphan")
 ```
 
-设计要点：
-- `icon` 字段存储 Phosphor Icons 的类名（如 `i-ph-notebook`），前端直接渲染。
-- `sort_order` 支持用户自定义排序，查询时按 `sort_order ASC, updated_at DESC` 排序。
-- 删除笔记本时通过 `cascade="all, delete-orphan"` 级联删除其下所有笔记。
+**设计要点说明**：
+- `icon` 字段存储 Phosphor Icons 的类名（如 `i-ph-notebook`），前端可以直接渲染对应的图标。
+- `sort_order` 字段支持用户自定义排序，查询时按 `sort_order ASC, updated_at DESC` 排序。
+- 删除笔记本时，其下所有笔记会被级联删除。
 
 #### 2.1.3 Note 模型
 
@@ -142,15 +181,15 @@ class Note(Base):
     created_at  = Column(DateTime(timezone=True), server_default=func.now())
     updated_at  = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    # 关系
+    # 关系定义
     notebook = relationship("Notebook", back_populates="notes")
     user     = relationship("User", back_populates="notes", foreign_keys=[user_id])
     tags     = relationship("Tag", secondary="note_tags", back_populates="notes")
 ```
 
-设计要点：
-- `content` 使用 PostgreSQL 的 JSONB 类型，原生支持 Tiptap 编辑器的 JSON 输出，无需额外序列化。
-- `plain_text` 为冗余字段，在笔记创建/更新时从 content 中递归提取 `type="text"` 节点拼接而成，用于 ILIKE 搜索，避免搜索时实时解析 JSON。
+**设计要点说明**：
+- `content` 使用 PostgreSQL 的 JSONB 类型，原生支持 Tiptap 编辑器的 JSON 输出。
+- `plain_text` 是冗余字段，在笔记创建/更新时从 content 中提取纯文本，用于快速搜索。
 - `archived_at` 记录归档时间，定时清理任务据此判断是否超过 7 天。
 - `tags` 通过 `note_tags` 关联表实现多对多关系。
 
@@ -181,64 +220,66 @@ class NoteTag(Base):
     tag_id  = Column(UUID, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
 ```
 
-设计要点：
-- `UniqueConstraint("user_id", "name")` 确保同一用户下标签名唯一，数据库层兜底。
-- `NoteTag` 采用联合主键，CASCADE 删除确保笔记或标签删除时自动清理关联。
+**设计要点说明**：
+- `UniqueConstraint("user_id", "name")` 确保同一用户下标签名唯一。
+- `NoteTag` 采用联合主键，CASCADE 删除确保笔记或标签删除时自动清理关联记录。
 
 ### 2.2 数据校验层（Schemas）
 
-所有 Schema 继承 Pydantic BaseModel，请求 Schema 做字段校验，响应 Schema 配置 `from_attributes=True` 支持 ORM 对象直接转换。
+所有 Schema 继承 Pydantic BaseModel，用于请求参数校验和响应数据序列化。
 
 #### 2.2.1 通用分页响应
 
 ```python
 # backend/app/schemas/common.py
 class PaginatedResponse(BaseModel, Generic[T]):
-    items: list[T]    # 数据列表
+    items: list[T]    # 当前页数据列表
     total: int        # 总记录数
     page: int         # 当前页码
     size: int         # 每页大小
     pages: int        # 总页数
 ```
 
+**设计思路**：统一分页响应格式，前端可以方便地实现分页组件。
+
 #### 2.2.2 用户相关 Schema
 
 | Schema | 用途 | 关键字段与校验规则 |
 |--------|------|-------------------|
-| `UserRegisterRequest` | 注册请求 | username(3-50), email(EmailStr), password(6-128), display_name(可选, max 100) |
-| `UserLoginRequest` | 登录请求 | email(EmailStr), password(str) |
-| `TokenResponse` | 令牌响应 | access_token, refresh_token, token_type="bearer", user(UserResponse) |
-| `RefreshTokenRequest` | 刷新令牌 | refresh_token(str) |
-| `UserResponse` | 用户信息 | id, username, email, display_name, avatar_url, created_at |
-| `UserUpdateRequest` | 更新用户 | display_name(可选), avatar_url(可选) |
+| `UserRegisterRequest` | 用户注册请求 | username (3-50字符), email (合法邮箱格式), password (6-128字符), display_name (可选, 最大100字符) |
+| `UserLoginRequest` | 用户登录请求 | email (合法邮箱格式), password (字符串) |
+| `TokenResponse` | 登录/注册成功响应 | access_token, refresh_token, token_type="bearer", user (用户信息) |
+| `RefreshTokenRequest` | 刷新令牌请求 | refresh_token (字符串) |
+| `UserResponse` | 用户信息响应 | id, username, email, display_name, avatar_url, created_at |
+| `UserUpdateRequest` | 更新用户信息请求 | display_name (可选), avatar_url (可选) |
 
 #### 2.2.3 笔记相关 Schema
 
 | Schema | 用途 | 关键字段与校验规则 |
 |--------|------|-------------------|
-| `NoteCreate` | 创建笔记 | title(默认"Untitled", max 500), content(dict, 可选), tag_ids(list[str], 可选) |
-| `NoteUpdate` | 更新笔记 | title(可选), content(可选) — 全部可选实现部分更新 |
-| `NotePinUpdate` | 置顶 | is_pinned(bool) |
-| `NoteArchiveUpdate` | 归档 | is_archived(bool) |
-| `NoteTagAttach` | 挂载标签 | tag_id(str) |
-| `NoteResponse` | 笔记响应 | 完整字段 + notebook_name(可选) + tags(list[TagResponse]) |
+| `NoteCreate` | 创建笔记请求 | title (默认"Untitled", 最大500字符), content (可选, JSON格式), tag_ids (可选, 标签ID列表) |
+| `NoteUpdate` | 更新笔记请求 | title (可选), content (可选) — 全部可选实现部分更新 |
+| `NotePinUpdate` | 置顶/取消置顶请求 | is_pinned (布尔值) |
+| `NoteArchiveUpdate` | 归档/取消归档请求 | is_archived (布尔值) |
+| `NoteTagAttach` | 挂载标签请求 | tag_id (字符串) |
+| `NoteResponse` | 笔记响应 | 完整字段 + notebook_name (可选) + tags (标签列表) |
 
 #### 2.2.4 笔记本与标签 Schema
 
 | Schema | 关键字段 |
 |--------|---------|
-| `NotebookCreate` | name(1-200), description, icon(默认"i-ph-notebook"), color(默认"#6366f1") |
-| `NotebookUpdate` | 所有字段可选，含 sort_order, is_archived |
-| `NotebookResponse` | 完整字段 + note_count(默认0) |
-| `TagCreate` | name(1-50), color(默认"#a855f7") |
-| `TagUpdate` | name(可选), color(可选) |
-| `TagResponse` | 完整字段 + note_count(默认0) |
+| `NotebookCreate` | name (1-200字符), description (可选), icon (默认"i-ph-notebook"), color (默认"#6366f1") |
+| `NotebookUpdate` | 所有字段可选，包括 sort_order, is_archived |
+| `NotebookResponse` | 完整字段 + note_count (笔记数量，默认0) |
+| `TagCreate` | name (1-50字符), color (默认"#a855f7") |
+| `TagUpdate` | name (可选), color (可选) |
+| `TagResponse` | 完整字段 + note_count (使用该标签的笔记数量，默认0) |
 
 ### 2.3 服务层（Services）
 
-每个 Service 为无状态单例，方法接收 `AsyncSession` 参数，不持有数据库连接。
+服务层是业务逻辑的核心，每个 Service 都是无状态单例，方法接收数据库会话参数，不持有连接。
 
-#### 2.3.1 AuthService
+#### 2.3.1 AuthService（认证服务）
 
 ```python
 # backend/app/services/auth.py
@@ -249,30 +290,30 @@ class AuthService:
     def get_current_user(self, db: AsyncSession, token: str) -> User
 ```
 
-**register 实现逻辑**：
-1. 按 email 查询用户，若存在则抛出 `ConflictException("Email already registered")`
-2. 按 username 查询用户，若存在则抛出 `ConflictException("Username already taken")`
-3. 调用 `hash_password(data.password)` 生成 BCrypt 哈希（12 轮）
-4. 创建 User ORM 对象，add + flush + refresh
-5. 调用 `create_access_token` 和 `create_refresh_token` 生成双令牌
-6. 返回 `TokenResponse`
+**register（注册）流程**：
+1. 按 email 查询用户，若存在则抛出错误
+2. 按 username 查询用户，若存在则抛出错误
+3. 使用 BCrypt 对密码进行哈希（12轮）
+4. 创建 User 对象，保存到数据库
+5. 生成 Access Token 和 Refresh Token
+6. 返回 TokenResponse
 
-**login 实现逻辑**：
-1. 按 email 查询用户，不存在则抛出 `UnauthorizedException("Invalid email or password")`
-2. 调用 `verify_password(data.password, user.hashed_password)`，失败则抛出相同异常
-3. 注意：不区分"邮箱不存在"和"密码错误"，统一返回相同错误信息，防止邮箱枚举攻击
+**login（登录）流程**：
+1. 按 email 查询用户，不存在则抛出错误
+2. 验证密码是否正确，错误则抛出相同错误信息（防止邮箱枚举攻击）
+3. 生成双令牌，返回 TokenResponse
 
-**refresh 实现逻辑**：
-1. 调用 `decode_token(refresh_token)` 解码 JWT
-2. 校验 `payload["type"] == "refresh"`，否则抛出 `UnauthorizedException`
-3. 以 `payload["sub"]` 为 subject 生成新的 access_token 和 refresh_token
-4. 返回新令牌对
+**refresh（刷新令牌）流程**：
+1. 解码 refresh_token，校验类型是否为 "refresh"
+2. 以解码出的用户 ID 生成新的双令牌
+3. 返回新令牌
 
-**get_current_user 实现逻辑**：
-1. 解码 token，校验 `type == "access"`
-2. 以 `sub` 中的 UUID 查询用户，不存在则抛出 `UnauthorizedException("User not found")`
+**get_current_user（获取当前用户）流程**：
+1. 解码 access_token，校验类型是否为 "access"
+2. 以解码出的用户 ID 查询用户
+3. 返回用户对象
 
-#### 2.3.2 NoteService
+#### 2.3.2 NoteService（笔记服务）
 
 ```python
 # backend/app/services/note.py
@@ -290,70 +331,28 @@ class NoteService:
     def detach_tag(self, db, note_id, user_id, tag_id) -> NoteResponse
 ```
 
-**辅助函数 extract_plain_text(content: dict) -> str**：
+**核心方法说明**：
 
-递归遍历 Tiptap JSON 文档，提取所有 `type == "text"` 节点的 `text` 字段，用空格拼接为纯文本字符串。实现逻辑：
+**extract_plain_text（提取纯文本）**：
+递归遍历 Tiptap JSON 文档，提取所有文本节点的内容，拼接成纯文本字符串，用于搜索。
 
-```python
-def extract_plain_text(content: dict | None) -> str | None:
-    if not content:
-        return None
-    texts = []
-    def _walk(node):
-        if node.get("type") == "text":
-            texts.append(node.get("text", ""))
-        for child in node.get("content", []):
-            _walk(child)
-    _walk(content)
-    return " ".join(texts) if texts else None
-```
+**update（更新笔记）流程**：
+1. 获取笔记对象，保存旧内容
+2. 执行部分更新（只更新传入的字段）
+3. 如果内容变更，对比新旧图片引用，删除不再使用的图片
+4. 刷新数据库会话，返回更新后的笔记
 
-**update 方法的图片清理逻辑**：
+**list_notes（列出笔记）排序逻辑**：
+- 置顶笔记优先显示
+- 同一优先级按更新时间倒序排列
 
-```python
-async def update(self, db, note_id, user_id, data):
-    note = await self._get_note_or_404(db, note_id, user_id)
-    old_content = note.content  # 保存旧内容
-
-    # 部分更新
-    update_data = data.model_dump(exclude_unset=True)
-
-    # 标题唯一性校验
-    if "title" in update_data and update_data["title"] != note.title:
-        # 检查同笔记本内标题唯一性
-
-    # 内容变更时追踪图片
-    if "content" in update_data:
-        old_images = extract_image_filenames(old_content)
-        # ... 更新 content 和 plain_text
-        new_images = extract_image_filenames(note.content)
-        removed = old_images - new_images
-        if removed:
-            await delete_orphaned_images(db, removed)
-
-    await db.flush()
-    return await self.get_note(db, note_id, user_id)
-```
-
-**list_notes 的排序与分页逻辑**：
-
-```python
-# 排序：置顶优先 → 更新时间倒序
-query = query.order_by(Note.is_pinned.desc(), Note.updated_at.desc())
-
-# 分页
-total = await db.scalar(count_query)
-items = await db.scalars(query.offset((page - 1) * size).limit(size))
-```
-
-**attach_tag 的幂等性保障**：
-
+**attach_tag（挂载标签）幂等性保障**：
 1. 验证笔记归属当前用户
 2. 验证标签存在且属于当前用户
-3. 检查 NoteTag 是否已存在（防止重复关联）
-4. 创建 NoteTag 记录
+3. 检查是否已存在关联，防止重复
+4. 创建关联记录
 
-#### 2.3.3 NotebookService
+#### 2.3.3 NotebookService（笔记本服务）
 
 ```python
 class NotebookService:
@@ -364,21 +363,10 @@ class NotebookService:
     def delete(self, db, notebook_id, user_id) -> None
 ```
 
-**list_notebooks 的 note_count 聚合查询**：
+**list_notebooks 聚合查询**：
+使用 `outerjoin` 关联笔记表，统计每个笔记本的笔记数量。即使笔记本没有笔记，也会返回（数量为0）。
 
-```python
-stmt = (
-    select(Notebook, func.count(Note.id).label("note_count"))
-    .outerjoin(Note, Note.notebook_id == Notebook.id)
-    .where(Notebook.user_id == user_uuid)
-    .group_by(Notebook.id)
-    .order_by(Notebook.sort_order.asc(), Notebook.updated_at.desc())
-)
-```
-
-使用 `outerjoin` 确保没有笔记的笔记本也会返回，`group_by` 聚合计算每个笔记本的笔记数量。
-
-#### 2.3.4 TagService
+#### 2.3.4 TagService（标签服务）
 
 ```python
 class TagService:
@@ -388,32 +376,18 @@ class TagService:
     def delete(self, db, tag_id, user_id) -> None
 ```
 
-**create 的唯一性保障**：Service 层不做唯一性校验，直接创建。若违反 `uq_user_tag_name` 约束，数据库抛出 `IntegrityError`，由全局异常处理器捕获并返回 409。
+**create（创建标签）唯一性保障**：
+Service 层不做唯一性校验，直接创建。若违反数据库唯一约束，由全局异常处理器捕获并返回 409 错误。
 
-#### 2.3.5 SearchService
+#### 2.3.5 SearchService（搜索服务）
 
 ```python
 class SearchService:
     def search_notes(self, db, user_id, query, page, size, notebook_id?) -> (list[NoteResponse], int)
 ```
 
-**搜索查询构建**：
-
-```python
-conditions = [
-    Note.user_id == user_uuid,
-    or_(
-        Note.title.ilike(f"%{query}%"),
-        Note.plain_text.ilike(f"%{query}%"),
-    ),
-]
-if notebook_id:
-    conditions.append(Note.notebook_id == notebook_uuid)
-
-stmt = select(Note).where(*conditions)
-```
-
-使用 `ILIKE` 实现不区分大小写的模糊匹配，搜索 `title` 和 `plain_text` 两个字段。`pg_trgm` 扩展已在数据库初始化时启用，后续可平滑升级为 GIN 索引加速。
+**搜索实现**：
+使用 `ILIKE` 实现不区分大小写的模糊匹配，搜索 `title` 和 `plain_text` 两个字段。
 
 #### 2.3.6 CleanupService（清理服务）
 
@@ -431,64 +405,28 @@ async def run_all_cleanup(db: AsyncSession) -> dict
 async def cleanup_loop(session_factory, interval_seconds=3600)
 ```
 
-**extract_image_filenames 实现逻辑**：
-
-递归遍历 Tiptap JSON，找到 `type == "image"` 节点，从 `attrs.src` 中用正则提取文件名：
-
-```python
-def extract_image_filenames(content: dict | None) -> set[str]:
-    if not content:
-        return set()
-    filenames = set()
-    def _walk(node):
-        if node.get("type") == "image":
-            src = node.get("attrs", {}).get("src", "")
-            match = IMAGE_URL_PATTERN.search(src)
-            if match:
-                filenames.add(match.group(1))
-        for child in node.get("content", []):
-            _walk(child)
-    _walk(content)
-    return filenames
-```
+**extract_image_filenames（提取图片文件名）**：
+递归遍历 Tiptap JSON，找到图片节点，从 src 属性中提取文件名。
 
 **delete_orphaned_images（增量清理）**：
+1. 查询所有笔记的 content 字段
+2. 提取所有被引用的图片文件名集合
+3. 删除不在引用集合中的候选文件
 
-1. 查询所有 Note 的 content 字段
-2. 提取所有被引用的图片文件名集合 `referenced`
-3. 遍历 `candidate_filenames`，删除不在 `referenced` 中的文件
+**cleanup_unused_images（全量清理）**：
+遍历 uploads 目录，检查每个文件是否被任何笔记引用，未被引用则删除。
 
-与 `cleanup_unused_images`（全量清理）的区别：增量清理只检查候选文件名，性能更优，适用于笔记更新/删除后的即时清理。
+**cleanup_expired_archived（清理过期归档）**：
+删除归档时间超过 7 天的笔记。
 
-**cleanup_expired_archived 实现逻辑**：
-
-1. 查询 `is_archived == True AND archived_at < 7天前` 的笔记
-2. 先删除关联的 NoteTag 记录
-3. 再删除 Note 记录
-4. 显式 commit（因为清理任务使用独立会话，不在请求事务内）
-
-**cleanup_loop 后台任务**：
-
-```python
-async def cleanup_loop(session_factory, interval_seconds=3600):
-    while True:
-        try:
-            async with session_factory() as db:
-                await run_all_cleanup(db)
-        except asyncio.CancelledError:
-            break  # 优雅退出
-        except Exception as e:
-            logger.error(f"Cleanup error: {e}")
-        await asyncio.sleep(interval_seconds)
-```
-
-在 FastAPI 的 `lifespan` 中作为 `asyncio.create_task` 启动，应用关闭时取消。
+**cleanup_loop（定时清理任务）**：
+每小时执行一次全量清理，在应用启动时作为后台任务启动。
 
 ### 2.4 仓库层（Repositories）
 
-#### 2.4.1 BaseRepository
+#### 2.4.1 BaseRepository（基础仓库）
 
-泛型基类 `BaseRepository[ModelType, CreateSchemaType, UpdateSchemaType]`：
+泛型基类，提供通用的 CRUD 操作：
 
 ```python
 class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
@@ -502,8 +440,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     async def delete(self, db: AsyncSession, db_obj: ModelType) -> None
 ```
 
-**update 方法的部分更新逻辑**：
-
+**update 方法部分更新逻辑**：
 ```python
 if isinstance(obj_in, dict):
     update_data = obj_in
@@ -514,49 +451,49 @@ for field, value in update_data.items():
     setattr(db_obj, field, value)
 ```
 
-`exclude_unset=True` 是 Pydantic 的关键特性，只序列化用户显式传入的字段，未传入的字段不会出现在 `update_data` 中，从而实现部分更新而非全量覆盖。
+`exclude_unset=True` 是关键特性，只序列化用户显式传入的字段，实现部分更新。
 
-#### 2.4.2 UserRepository
+#### 2.4.2 UserRepository（用户仓库）
 
-继承 `BaseRepository[User, UserRegisterRequest, UserUpdateRequest]`，额外提供：
-- `get_by_email(db, email)` — 按 email 查询用户
+继承 `BaseRepository`，额外提供：
+- `get_by_email(db, email)` — 按邮箱查询用户
 - `get_by_username(db, username)` — 按用户名查询用户
 
 ### 2.5 路由层（Routes）
 
-所有路由通过 `Depends(get_current_user)` 实现鉴权，通过 `Depends(get_db)` 获取带事务管理的数据库会话。
+所有路由通过依赖注入实现鉴权和数据库会话管理。
 
 #### 2.5.1 API 端点一览
 
-| 方法 | 路径 | 认证 | 请求体 | 响应 | 状态码 |
-|------|------|------|--------|------|--------|
-| POST | /api/v1/auth/register | 无 | UserRegisterRequest | TokenResponse | 201 |
-| POST | /api/v1/auth/login | 无 | UserLoginRequest | TokenResponse | 200 |
-| POST | /api/v1/auth/refresh | 无 | RefreshTokenRequest | {access_token, refresh_token} | 200 |
-| GET | /api/v1/auth/me | Bearer | - | UserResponse | 200 |
-| PUT | /api/v1/auth/me | Bearer | UserUpdateRequest | UserResponse | 200 |
-| GET | /api/v1/notebooks | Bearer | query: archived, page, size | PaginatedResponse[NotebookResponse] | 200 |
-| POST | /api/v1/notebooks | Bearer | NotebookCreate | NotebookResponse | 201 |
-| GET | /api/v1/notebooks/{id} | Bearer | - | NotebookResponse | 200 |
-| PUT | /api/v1/notebooks/{id} | Bearer | NotebookUpdate | NotebookResponse | 200 |
-| DELETE | /api/v1/notebooks/{id} | Bearer | - | - | 204 |
-| GET | /api/v1/notebooks/{id}/notes | Bearer | query: pinned, archived, tag_id, page, size | PaginatedResponse[NoteResponse] | 200 |
-| POST | /api/v1/notebooks/{id}/notes | Bearer | NoteCreate | NoteResponse | 201 |
-| GET | /api/v1/notes | Bearer | query: page, size, tag_id | PaginatedResponse[NoteResponse] | 200 |
-| GET | /api/v1/notes/archived | Bearer | query: page, size | PaginatedResponse[NoteResponse] | 200 |
-| GET | /api/v1/notes/{id} | Bearer | - | NoteResponse | 200 |
-| PUT | /api/v1/notes/{id} | Bearer | NoteUpdate | NoteResponse | 200 |
-| DELETE | /api/v1/notes/{id} | Bearer | - | - | 204 |
-| PATCH | /api/v1/notes/{id}/pin | Bearer | NotePinUpdate | NoteResponse | 200 |
-| PATCH | /api/v1/notes/{id}/archive | Bearer | NoteArchiveUpdate | NoteResponse | 200 |
-| POST | /api/v1/notes/{id}/tags | Bearer | NoteTagAttach | NoteResponse | 200 |
-| DELETE | /api/v1/notes/{id}/tags/{tag_id} | Bearer | - | NoteResponse | 200 |
-| GET | /api/v1/tags | Bearer | query: page, size | PaginatedResponse[TagResponse] | 200 |
-| POST | /api/v1/tags | Bearer | TagCreate | TagResponse | 201 |
-| PUT | /api/v1/tags/{id} | Bearer | TagUpdate | TagResponse | 200 |
-| DELETE | /api/v1/tags/{id} | Bearer | - | - | 204 |
-| GET | /api/v1/search | Bearer | query: q(必填), page, size, notebook_id | PaginatedResponse[NoteResponse] | 200 |
-| POST | /api/v1/uploads/images | Bearer | FormData: file | {url, original_name, size} | 201 |
+| 方法 | 路径 | 是否需要认证 | 请求体 | 响应 | 状态码 |
+|------|------|-------------|--------|------|--------|
+| POST | /api/v1/auth/register | 否 | UserRegisterRequest | TokenResponse | 201 |
+| POST | /api/v1/auth/login | 否 | UserLoginRequest | TokenResponse | 200 |
+| POST | /api/v1/auth/refresh | 否 | RefreshTokenRequest | {access_token, refresh_token} | 200 |
+| GET | /api/v1/auth/me | 是 | - | UserResponse | 200 |
+| PUT | /api/v1/auth/me | 是 | UserUpdateRequest | UserResponse | 200 |
+| GET | /api/v1/notebooks | 是 | query: archived, page, size | PaginatedResponse[NotebookResponse] | 200 |
+| POST | /api/v1/notebooks | 是 | NotebookCreate | NotebookResponse | 201 |
+| GET | /api/v1/notebooks/{id} | 是 | - | NotebookResponse | 200 |
+| PUT | /api/v1/notebooks/{id} | 是 | NotebookUpdate | NotebookResponse | 200 |
+| DELETE | /api/v1/notebooks/{id} | 是 | - | - | 204 |
+| GET | /api/v1/notebooks/{id}/notes | 是 | query: pinned, archived, tag_id, page, size | PaginatedResponse[NoteResponse] | 200 |
+| POST | /api/v1/notebooks/{id}/notes | 是 | NoteCreate | NoteResponse | 201 |
+| GET | /api/v1/notes | 是 | query: page, size, tag_id | PaginatedResponse[NoteResponse] | 200 |
+| GET | /api/v1/notes/archived | 是 | query: page, size | PaginatedResponse[NoteResponse] | 200 |
+| GET | /api/v1/notes/{id} | 是 | - | NoteResponse | 200 |
+| PUT | /api/v1/notes/{id} | 是 | NoteUpdate | NoteResponse | 200 |
+| DELETE | /api/v1/notes/{id} | 是 | - | - | 204 |
+| PATCH | /api/v1/notes/{id}/pin | 是 | NotePinUpdate | NoteResponse | 200 |
+| PATCH | /api/v1/notes/{id}/archive | 是 | NoteArchiveUpdate | NoteResponse | 200 |
+| POST | /api/v1/notes/{id}/tags | 是 | NoteTagAttach | NoteResponse | 200 |
+| DELETE | /api/v1/notes/{id}/tags/{tag_id} | 是 | - | NoteResponse | 200 |
+| GET | /api/v1/tags | 是 | query: page, size | PaginatedResponse[TagResponse] | 200 |
+| POST | /api/v1/tags | 是 | TagCreate | TagResponse | 201 |
+| PUT | /api/v1/tags/{id} | 是 | TagUpdate | TagResponse | 200 |
+| DELETE | /api/v1/tags/{id} | 是 | - | - | 204 |
+| GET | /api/v1/search | 是 | query: q(必填), page, size, notebook_id | PaginatedResponse[NoteResponse] | 200 |
+| POST | /api/v1/uploads/images | 是 | FormData: file | {url, original_name, size} | 201 |
 
 #### 2.5.2 图片上传路由
 
@@ -567,12 +504,12 @@ ALLOWED_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp", "image/sv
 MAX_SIZE = 5 * 1024 * 1024  # 5 MB
 ```
 
-上传流程：
-1. 校验 `file.content_type` 是否在 `ALLOWED_TYPES` 中
-2. 读取文件内容，校验大小不超过 5MB
-3. 生成 UUID 文件名 + 保留原始扩展名（不在白名单则默认 .png）
-4. 确保目录存在，写入文件
-5. 返回 URL（`/uploads/<filename>`）、原始文件名、文件大小
+**上传流程**：
+1. 校验文件类型是否在白名单中
+2. 校验文件大小不超过 5MB
+3. 生成 UUID 文件名，保留原始扩展名
+4. 确保上传目录存在，写入文件
+5. 返回文件 URL、原始文件名和大小
 
 ### 2.6 核心模块
 
@@ -592,7 +529,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 ```
 
-使用 `pydantic-settings` 的 `BaseSettings`，自动从 `.env` 文件和环境变量加载配置。
+使用 `pydantic-settings` 自动从 `.env` 文件和环境变量加载配置。
 
 #### 2.6.2 数据库配置
 
@@ -604,30 +541,29 @@ async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit
 Base = DeclarativeBase
 ```
 
-`expire_on_commit=False` 的意义：默认情况下，commit 后 ORM 对象的属性会过期，下次访问时触发懒加载。在异步环境中懒加载不可用（需要 `await`），因此必须关闭此行为。
+**`expire_on_commit=False` 的作用**：默认情况下，commit 后 ORM 对象的属性会过期，下次访问时会触发懒加载。在异步环境中懒加载不可用，因此必须关闭此行为。
 
 #### 2.6.3 安全模块
 
 ```python
 # backend/app/core/security.py
 def verify_password(plain_password: str, hashed_password: str) -> bool
-    # bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+    # 使用 bcrypt 验证密码
 
 def hash_password(password: str) -> str
-    # bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12))
+    # 使用 bcrypt 哈希密码（12轮）
 
 def create_access_token(subject: str, expires_delta: timedelta | None = None) -> str
-    # payload = {"sub": subject, "iat": now, "exp": expire, "type": "access"}
-    # jose.jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+    # 生成访问令牌，有效期30分钟
 
 def create_refresh_token(subject: str) -> str
-    # payload = {"sub": subject, "iat": now, "exp": expire, "type": "refresh"}
+    # 生成刷新令牌，有效期7天
 
 def decode_token(token: str) -> dict
-    # jose.jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+    # 解码 JWT 令牌
 ```
 
-JWT payload 结构：
+**JWT payload 结构**：
 - `sub`：用户 UUID 字符串
 - `iat`：签发时间
 - `exp`：过期时间
@@ -636,16 +572,14 @@ JWT payload 结构：
 #### 2.6.4 异常体系
 
 ```
-AppException (base, status_code=400)
+AppException (基类, status_code=400)
   ├── NotFoundException (404)
   ├── UnauthorizedException (401)
   ├── ForbiddenException (403)
   └── ConflictException (409)
 ```
 
-全局异常处理器在 `main.py` 中注册：
-- `AppException` → `JSONResponse({"detail": message}, status_code)`
-- `ValueError` → `JSONResponse({"detail": str(exc)}, 400)`
+全局异常处理器在 `main.py` 中注册，自动将异常转换为 JSON 响应。
 
 #### 2.6.5 依赖注入
 
@@ -661,12 +595,12 @@ async def get_db() -> AsyncGenerator[AsyncSession]:
             raise
 
 async def get_current_user(authorization: str = Header(), db=Depends(get_db)) -> User:
-    # 1. 从 Header 提取 Bearer token
-    # 2. 调用 auth_service.get_current_user(db, token)
-    # 3. 返回 User 对象
+    # 从请求头提取 Bearer token
+    # 解码 token 获取用户信息
+    # 返回 User 对象
 ```
 
-关键点：`get_db` 在 `deps.py` 中覆盖了 `database.py` 中的同名函数，增加了 commit/rollback 事务管理。所有路由通过 `Depends(get_db)` 获取带事务管理的会话，无需手动管理事务。
+**关键设计**：`get_db` 统一管理数据库会话的 commit/rollback，Service 层只做 flush 操作。
 
 #### 2.6.6 应用工厂
 
@@ -674,12 +608,12 @@ async def get_current_user(authorization: str = Header(), db=Depends(get_db)) ->
 # backend/app/main.py
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 启动
+    # 启动时：自动创建数据库表，启动定时清理任务
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)  # 自动建表
+        await conn.run_sync(Base.metadata.create_all)
     cleanup_task = asyncio.create_task(cleanup_loop(async_session, 3600))
     yield
-    # 关闭
+    # 关闭时：取消清理任务，释放数据库连接
     cleanup_task.cancel()
     try:
         await cleanup_task
@@ -708,17 +642,17 @@ def create_app() -> FastAPI:
 frontend/src/
 ├── api/                    # API 调用层
 │   ├── client.ts           # Axios 实例 + JWT 刷新拦截器
-│   ├── auth.ts             # 认证 API
-│   ├── notebooks.ts        # 笔记本 API
-│   ├── notes.ts            # 笔记 API
-│   ├── tags.ts             # 标签 API
-│   └── search.ts           # 搜索 API
+│   ├── auth.ts             # 认证相关 API
+│   ├── notebooks.ts        # 笔记本相关 API
+│   ├── notes.ts            # 笔记相关 API
+│   ├── tags.ts             # 标签相关 API
+│   └── search.ts           # 搜索相关 API
 ├── components/
 │   ├── layout/             # 布局组件
 │   │   ├── AppHeader.vue   # 顶部导航栏
 │   │   └── AppSidebar.vue  # 侧边栏（笔记本列表）
 │   ├── note/
-│   │   └── NoteListItem.vue # 笔记列表项
+│   │   └── NoteListItem.vue # 笔记列表项组件
 │   └── ui/                 # 通用 UI 组件
 │       ├── UiButton.vue
 │       ├── UiEmpty.vue
@@ -734,29 +668,29 @@ frontend/src/
 │   ├── index.ts            # 路由配置
 │   └── guards.ts           # 导航守卫
 ├── stores/                 # Pinia 状态管理
-│   ├── auth.ts             # 认证状态
-│   ├── notes.ts            # 笔记状态
-│   ├── notebooks.ts        # 笔记本状态
-│   ├── tags.ts             # 标签状态
-│   ├── editor.ts           # 编辑器状态
-│   └── ui.ts               # UI 状态（主题、侧边栏、Toast）
+│   ├── auth.ts             # 认证状态管理
+│   ├── notes.ts            # 笔记状态管理
+│   ├── notebooks.ts        # 笔记本状态管理
+│   ├── tags.ts             # 标签状态管理
+│   ├── editor.ts           # 编辑器状态管理
+│   └── ui.ts               # UI 状态管理（主题、侧边栏、Toast）
 ├── types/                  # TypeScript 类型定义
-│   ├── common.ts           # PaginatedResponse<T>, SortOrder
-│   ├── note.ts             # Note, NoteCreateRequest, NoteUpdateRequest
-│   ├── notebook.ts         # Notebook, NotebookCreateRequest, NotebookUpdateRequest
-│   ├── tag.ts              # Tag, TagCreateRequest, TagUpdateRequest
-│   └── user.ts             # User, LoginRequest, RegisterRequest, TokenResponse
+│   ├── common.ts           # 通用类型（分页响应等）
+│   ├── note.ts             # 笔记相关类型
+│   ├── notebook.ts         # 笔记本相关类型
+│   ├── tag.ts              # 标签相关类型
+│   └── user.ts             # 用户相关类型
 └── views/                  # 页面视图
-    ├── DashboardView.vue   # 仪表盘
-    ├── NoteEditView.vue    # 笔记编辑（核心页面）
-    ├── AllNotesView.vue    # 全部笔记
-    ├── ArchivedView.vue    # 归档笔记
-    ├── NotebookDetailView.vue # 笔记本详情
-    ├── SearchView.vue      # 搜索结果
-    ├── TagsManageView.vue  # 标签管理
-    ├── LoginView.vue       # 登录
-    ├── RegisterView.vue    # 注册
-    └── NotFoundView.vue    # 404
+    ├── DashboardView.vue   # 仪表盘首页
+    ├── NoteEditView.vue    # 笔记编辑页面（核心功能）
+    ├── AllNotesView.vue    # 全部笔记页面
+    ├── ArchivedView.vue    # 归档笔记页面
+    ├── NotebookDetailView.vue # 笔记本详情页面
+    ├── SearchView.vue      # 搜索结果页面
+    ├── TagsManageView.vue  # 标签管理页面
+    ├── LoginView.vue       # 登录页面
+    ├── RegisterView.vue    # 注册页面
+    └── NotFoundView.vue    # 404 页面
 ```
 
 ### 3.2 Axios 客户端与 JWT 刷新机制
@@ -768,7 +702,7 @@ const client = axios.create({
   timeout: 15000,
 })
 
-// 请求拦截器：附加 Access Token
+// 请求拦截器：自动附加 Access Token
 client.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
@@ -785,22 +719,24 @@ function processQueue(error: any, token: string | null = null) {
 }
 ```
 
-**并发刷新的请求队列机制**：
+**并发刷新的请求队列机制详解**：
+
+当多个请求同时收到 401 响应时，可能会同时尝试刷新令牌，但只有第一个刷新能成功（Refresh Token 只能使用一次）。请求队列机制解决了这个问题：
 
 1. 收到 401 响应时，检查 `isRefreshing` 标志
-2. 若正在刷新（`isRefreshing === true`），将当前请求以 Promise 入队，等待新令牌
-3. 若未在刷新，设置 `isRefreshing = true`，执行刷新请求
+2. 如果正在刷新，将当前请求以 Promise 形式加入队列等待
+3. 如果未在刷新，设置 `isRefreshing = true`，执行刷新请求
 4. 刷新成功：更新 localStorage 和 Pinia store 中的令牌，调用 `processQueue(null, newToken)` 统一重试队列中的请求
 5. 刷新失败：调用 `processQueue(error)` 拒绝所有等待中的请求，执行登出
 6. `finally` 块重置 `isRefreshing = false`
 
-这个机制确保同一时刻只有一个刷新操作，避免多个并发 401 导致 Refresh Token 失效。
+**实际效果**：确保同一时刻只有一个刷新操作，避免并发刷新导致 Refresh Token 失效。
 
 ### 3.3 状态管理（Pinia Stores）
 
-所有 Store 采用 Setup Stores 风格（函数式定义），与 Composition API 风格统一。
+所有 Store 采用 Setup Stores 风格，与 Composition API 风格统一。
 
-#### 3.3.1 AuthStore
+#### 3.3.1 AuthStore（认证状态）
 
 ```typescript
 // frontend/src/stores/auth.ts
@@ -810,21 +746,21 @@ export const useAuthStore = defineStore('auth', () => {
   const refreshToken = ref<string | null>(localStorage.getItem('refresh_token'))
   const isAuthenticated = computed(() => !!accessToken.value)
 
-  async function login(data: LoginRequest)    // 调用 authApi.login → setTokens → router.push('/')
-  async function register(data: RegisterRequest) // 调用 authApi.register → setTokens → router.push('/')
-  async function fetchUser()                   // 调用 authApi.getMe → 更新 user
-  function logout()                            // clearTokens → user = null → router.push('/auth/login')
+  async function login(data: LoginRequest)    // 调用登录 API → 设置令牌 → 跳转到首页
+  async function register(data: RegisterRequest) // 调用注册 API → 设置令牌 → 跳转到首页
+  async function fetchUser()                   // 调用获取用户信息 API → 更新用户状态
+  function logout()                            // 清除令牌 → 用户状态置空 → 跳转到登录页
 
-  // 初始化：若 token 存在则自动获取用户信息
+  // 初始化：如果令牌存在，自动获取用户信息
   if (accessToken.value) fetchUser()
 
   return { user, accessToken, isAuthenticated, login, register, fetchUser, logout }
 })
 ```
 
-令牌持久化策略：Access Token 和 Refresh Token 同时存储在 Pinia（内存）和 localStorage（持久化）中。页面刷新时从 localStorage 恢复，避免重新登录。
+**令牌持久化策略**：Access Token 和 Refresh Token 同时存储在 Pinia（内存）和 localStorage（持久化）中。页面刷新时从 localStorage 恢复，避免重新登录。
 
-#### 3.3.2 NotesStore
+#### 3.3.2 NotesStore（笔记状态）
 
 ```typescript
 export const useNotesStore = defineStore('notes', () => {
@@ -833,20 +769,20 @@ export const useNotesStore = defineStore('notes', () => {
   const isLoading = ref(false)
   const total = ref(0)
 
-  async function fetchNotes(notebookId, params?)  // 获取笔记本内笔记列表
+  async function fetchNotes(notebookId, params?)  // 获取笔记本内的笔记列表
   async function fetchNote(id): Promise<Note>     // 获取单个笔记详情
-  async function createNote(notebookId, data)     // 创建笔记 → unshift 到列表头部
+  async function createNote(notebookId, data)     // 创建笔记 → 添加到列表头部
   async function updateNote(id, data)             // 更新笔记 → 替换列表和 activeNote 中的对应项
   async function deleteNote(id)                   // 删除笔记 → 从列表中移除
-  async function togglePin(id, isPinned)          // 切换置顶
-  async function toggleArchive(id, isArchived)    // 切换归档
+  async function togglePin(id, isPinned)          // 切换置顶状态
+  async function toggleArchive(id, isArchived)    // 切换归档状态
   function setActiveNote(note)                    // 设置当前活跃笔记
 })
 ```
 
-乐观更新策略：`updateNote` 成功后立即替换本地列表中的对应项，无需重新获取列表。
+**乐观更新策略**：`updateNote` 成功后立即替换本地列表中的对应项，无需重新获取整个列表，提升响应速度。
 
-#### 3.3.3 EditorStore
+#### 3.3.3 EditorStore（编辑器状态）
 
 ```typescript
 export const useEditorStore = defineStore('editor', () => {
@@ -858,15 +794,15 @@ export const useEditorStore = defineStore('editor', () => {
   const charCount = ref(0)
   const saveStatus = ref<'saved' | 'saving' | 'unsaved'>('saved')
 
-  function markDirty()    // isDirty = true, saveStatus = 'unsaved'
-  function markClean()    // isDirty = false, lastSavedAt = new Date(), saveStatus = 'saved'
-  function setSaving(v)   // isSaving = v, saveStatus = 'saving'
-  function setCounts(w, c) // 更新字数和字符数
+  function markDirty()    // 标记为有未保存修改
+  function markClean()    // 标记为已保存
+  function setSaving(v)   // 设置保存中状态
+  function setCounts(w, c) // 更新字数统计
   function reset()        // 重置所有状态
 })
 ```
 
-#### 3.3.4 UiStore
+#### 3.3.4 UiStore（UI 状态）
 
 ```typescript
 export const useUiStore = defineStore('ui', () => {
@@ -882,10 +818,10 @@ export const useUiStore = defineStore('ui', () => {
     return theme.value
   })
 
-  function setTheme(newTheme)  // 更新 theme + localStorage + applyTheme()
-  function applyTheme()        // document.documentElement.classList.add(resolvedTheme)
-  function addToast(toast)     // 推入 Toast，设置自动移除定时器（默认 4 秒）
-  function removeToast(id)     // 从列表中移除
+  function setTheme(newTheme)  // 更新主题设置
+  function applyTheme()        // 应用主题到 DOM
+  function addToast(toast)     // 添加提示消息
+  function removeToast(id)     // 移除提示消息
 
   // 初始化：应用主题 + 监听系统主题变化
   applyTheme()
@@ -932,10 +868,13 @@ const routes: RouteRecordRaw[] = [
 export const authGuard: NavigationGuard = (to, _from, next) => {
   const auth = useAuthStore()
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    next({ name: 'login', query: { redirect: to.fullPath } })  // 未登录 → 登录页，记住目标路由
+    // 未登录用户访问需要认证的页面 → 跳转到登录页，并记录目标路由
+    next({ name: 'login', query: { redirect: to.fullPath } })
   } else if (to.meta.requiresGuest && auth.isAuthenticated) {
-    next({ name: 'dashboard' })  // 已登录 → 仪表盘
+    // 已登录用户访问登录/注册页 → 跳转到仪表盘
+    next({ name: 'dashboard' })
   } else {
+    // 正常访问
     next()
   }
 }
@@ -951,13 +890,13 @@ export const authGuard: NavigationGuard = (to, _from, next) => {
 const editor = useEditor({
   extensions: [
     StarterKit.configure({ heading: { levels: [1, 2, 3] }, codeBlock: false }),
-    CodeBlockWithLabel,           // 自定义代码块（含语言标签 + lowlight 语法高亮）
+    CodeBlockWithLabel,           // 自定义代码块（含语言标签 + 语法高亮）
     Placeholder.configure({ placeholder: 'Start writing...' }),
     TextStyle,                    // 文字样式基础扩展
     Color,                        // 文字颜色
-    Highlight,                    // 高亮
+    Highlight,                    // 高亮标记
     TaskList,                     // 任务列表
-    TaskItem.configure({ nested: true }),  // 嵌套任务项
+    TaskItem.configure({ nested: true }),  // 支持嵌套的任务项
     Table.configure({ resizable: true }),  // 可调整大小的表格
     TableRow, TableCell, TableHeader,
     Image.configure({ inline: false, allowBase64: false }),  // 服务端上传，禁止 Base64
@@ -973,7 +912,7 @@ const editor = useEditor({
 })
 ```
 
-#### 3.5.2 自定义 CodeBlockWithLabel
+#### 3.5.2 自定义代码块扩展
 
 ```typescript
 const CodeBlockWithLabel = CodeBlockLowlight.extend({
@@ -1006,7 +945,7 @@ async function saveNote() {
     await notesStore.updateNote(noteId, { title: title.value, content })
     editorStore.markClean()
   } catch {
-    ui.addToast({ type: 'error', message: 'Failed to save' })
+    ui.addToast({ type: 'error', message: '保存失败' })
   } finally {
     editorStore.setSaving(false)
   }
@@ -1033,7 +972,10 @@ onBeforeUnmount(() => {
 })
 ```
 
-三重保存保障：防抖自动保存（3s）+ 快捷键手动保存（Ctrl+S）+ 卸载兜底保存。
+**三重保存保障**：
+1. **防抖自动保存**：3 秒无操作后自动保存，避免频繁请求
+2. **快捷键手动保存**：Ctrl+S 跳过防抖立即保存
+3. **卸载兜底保存**：组件销毁前检查是否有未保存的修改
 
 #### 3.5.4 图片上传
 
@@ -1041,8 +983,14 @@ onBeforeUnmount(() => {
 async function handleImageUpload(event: Event) {
   const file = target.files?.[0]
   // 前端校验：文件类型 + 大小
-  if (!allowedTypes.includes(file.type)) { /* Toast error */ return }
-  if (file.size > 5 * 1024 * 1024) { /* Toast error */ return }
+  if (!allowedTypes.includes(file.type)) { 
+    ui.addToast({ type: 'error', message: '不支持的文件类型' })
+    return 
+  }
+  if (file.size > 5 * 1024 * 1024) { 
+    ui.addToast({ type: 'error', message: '文件大小超过 5MB' })
+    return 
+  }
 
   // 上传到服务端
   const formData = new FormData()
@@ -1057,11 +1005,16 @@ async function handleImageUpload(event: Event) {
 }
 ```
 
-前后端双重校验：前端先校验类型和大小，后端再次校验。图片通过服务端上传存储，而非 Base64 内嵌，避免文档体积膨胀。
+**前后端双重校验**：前端先校验类型和大小，后端再次校验。图片通过服务端上传存储，而非 Base64 内嵌，避免文档体积膨胀。
 
 #### 3.5.5 右键上下文菜单
 
-编辑器区域监听 `@contextmenu` 事件，阻止浏览器默认菜单，显示自定义格式化菜单。菜单包含：文字格式（粗体/斜体/下划线/高亮/颜色）、标题（H1-H3）、列表（无序/有序/任务）、块级元素（引用/代码/分割线）、操作（链接/图片/清除格式）。
+编辑器区域监听 `@contextmenu` 事件，阻止浏览器默认菜单，显示自定义格式化菜单。菜单包含：
+- 文字格式：粗体、斜体、下划线、高亮、颜色
+- 标题：H1、H2、H3
+- 列表：无序列表、有序列表、任务列表
+- 块级元素：引用、代码块、分割线
+- 操作：链接、图片、清除格式
 
 菜单位置自动调整，防止溢出视口。
 
@@ -1083,7 +1036,7 @@ interface Note {
   notebook_id: string
   user_id: string
   title: string
-  content: Record<string, any> | null  // Tiptap JSON
+  content: Record<string, any> | null  // Tiptap JSON 格式
   plain_text: string | null
   is_pinned: boolean
   is_archived: boolean
@@ -1142,27 +1095,40 @@ interface NoteUpdateRequest {
 └────────────────────────────────────────────────────────────────┘
 ```
 
+**流程说明**：
+1. 用户登录时，前端发送邮箱和密码到 `/auth/login`
+2. 后端验证密码，生成 Access Token（30分钟）和 Refresh Token（7天）
+3. 前端将令牌存储到 localStorage 和 Pinia
+4. 后续每个请求自动携带 Access Token
+5. 当 Access Token 过期（401），自动使用 Refresh Token 刷新
+6. 如果 Refresh Token 也过期，用户需要重新登录
+
 ### 4.2 笔记编辑与保存流程
 
 ```
 用户输入 → Tiptap onUpdate 回调
-  ├── editorStore.markDirty()
-  └── scheduleAutoSave()
+  ├── editorStore.markDirty() 标记有未保存修改
+  └── scheduleAutoSave() 启动 3 秒防抖定时器
         └── setTimeout(3000ms) → saveNote()
-              ├── editorStore.setSaving(true)
-              ├── editor.getJSON() → content
+              ├── editorStore.setSaving(true) 设置保存中状态
+              ├── editor.getJSON() → 获取编辑器内容
               ├── notesStore.updateNote(id, {title, content})
               │     └── PUT /api/v1/notes/{id}
-              │           ├── 后端 extract_plain_text(content) → plain_text
-              │           ├── 后端 diff 图片引用 → delete_orphaned_images()
+              │           ├── 后端 extract_plain_text(content) → 更新 plain_text
+              │           ├── 后端 diff 图片引用 → 删除不再使用的图片
               │           └── 返回 NoteResponse
-              ├── editorStore.markClean()
-              └── editorStore.setSaving(false)
+              ├── editorStore.markClean() 标记已保存
+              └── editorStore.setSaving(false) 取消保存中状态
 
 标题变更 → watch(title) → markDirty() + scheduleAutoSave()
 Ctrl+S  → saveNote()（立即保存，跳过防抖）
 组件卸载 → if (isDirty) saveNote()（兜底保存）
 ```
+
+**关键设计**：
+- **防抖机制**：避免用户输入过程中频繁保存
+- **三重保存**：自动保存 + 快捷键保存 + 卸载保存，确保数据不丢失
+- **图片清理**：保存时自动清理不再使用的图片
 
 ### 4.3 图片生命周期
 
@@ -1179,23 +1145,27 @@ Ctrl+S  → saveNote()（立即保存，跳过防抖）
   笔记保存时，content JSON 中包含 {"type": "image", "attrs": {"src": "/uploads/<uuid>.png"}}
 
 清理阶段（即时）：
-  笔记更新 → extract_image_filenames(old_content) → old_images
-           → extract_image_filenames(new_content) → new_images
-           → removed = old_images - new_images
+  笔记更新 → extract_image_filenames(old_content) → 获取旧图片集合
+           → extract_image_filenames(new_content) → 获取新图片集合
+           → removed = old_images - new_images → 计算不再使用的图片
            → delete_orphaned_images(db, removed)
-               → 查询所有 Note.content → 提取所有引用
+               → 查询所有 Note.content → 提取所有被引用的图片
                → 删除不在引用集合中的候选文件
 
 清理阶段（定时兜底）：
   cleanup_loop (每小时)
     → cleanup_unused_images()
         → 遍历 uploads/ 目录
-        → 查询所有 Note.content → 提取所有引用
+        → 查询所有 Note.content → 提取所有被引用的图片
         → 删除未被引用的文件
     → cleanup_expired_archived()
         → 删除 archived_at > 7天 的笔记
-        → 先删 NoteTag → 再删 Note
+        → 先删 NoteTag 关联 → 再删 Note
 ```
+
+**双层清理机制**：
+- **即时清理**：笔记更新/删除时立即清理不再使用的图片
+- **定时兜底**：每小时全量扫描，确保没有遗漏
 
 ### 4.4 事务管理流程
 
@@ -1205,20 +1175,25 @@ Ctrl+S  → saveNote()（立即保存，跳过防抖）
     → async with async_session() as session:
         try:
           yield session           ← 路由函数使用 session
-          await session.commit()  ← 成功时提交
+          await session.commit()  ← 成功时提交事务
         except:
-          await session.rollback() ← 异常时回滚
+          await session.rollback() ← 异常时回滚事务
           raise                    ← 重新抛出异常给全局处理器
 
 注意：Service 层只做 db.flush()（将变更推送到数据库但不提交），
       commit/rollback 由依赖注入层统一管理。
 ```
 
+**设计优势**：
+- **统一管理**：事务的提交和回滚由依赖注入层统一处理，Service 层无需关心
+- **自动回滚**：任何异常都会触发回滚，确保数据一致性
+- **简化代码**：业务代码只需关注业务逻辑，无需处理事务细节
+
 ---
 
 ## 5 数据库设计
 
-### 5.1 ER 关系
+### 5.1 ER 关系图
 
 ```
 users (1) ──── (N) notebooks (1) ──── (N) notes
@@ -1226,6 +1201,12 @@ users (1) ──── (N) notebooks (1) ──── (N) notes
   │                                  └──── (N) ── note_tags ── (N) └─ tags
   └──── (1) ──── (N) ──────────────────────────────────────────────────┘
 ```
+
+**关系说明**：
+- 一个用户（User）可以有多个笔记本（Notebook）
+- 一个笔记本（Notebook）可以有多个笔记（Note）
+- 一个笔记（Note）可以有多个标签（Tag），一个标签（Tag）可以关联多个笔记（Note）
+- 用户（User）可以创建多个标签（Tag）
 
 ### 5.2 迁移脚本
 
@@ -1289,35 +1270,75 @@ volumes:
 
 ### Q1: JWT 双令牌机制为什么需要请求队列？
 
-当多个请求并发发出，Access Token 同时过期，每个请求都会收到 401。如果不做队列处理，每个请求都独立刷新令牌，但只有第一个刷新能成功——后续刷新使用的 Refresh Token 已被第一个刷新操作使旧。请求队列确保同一时刻只有一个刷新操作，其余请求等待新令牌后自动重试。
+**解答**：当多个请求并发发出，Access Token 同时过期，每个请求都会收到 401 响应。如果不做队列处理，每个请求都会独立尝试刷新令牌，但只有第一个刷新能成功——后续刷新使用的 Refresh Token 已经被第一个刷新操作使旧。
+
+**解决方案**：请求队列确保同一时刻只有一个刷新操作，其余请求等待新令牌后自动重试。这样可以避免并发刷新导致的 Refresh Token 失效问题。
+
+**实际效果**：用户体验无缝，不会因为并发请求导致意外登出。
 
 ### Q2: 为什么用 JSONB 而不是 TEXT 存储 Tiptap 内容？
 
-1. Tiptap 编辑器原生输出 JSON，JSONB 无需额外序列化/反序列化
-2. JSONB 支持结构化查询，可以用 PostgreSQL 的 JSON 操作符查询特定节点
-3. JSONB 存储时自动压缩，比 TEXT 存储等量 JSON 字符串更省空间
-4. 配合 `plain_text` 冗余字段，搜索不需要解析 JSON
+**解答**：
+1. **原生支持**：Tiptap 编辑器原生输出 JSON，JSONB 无需额外序列化/反序列化
+2. **结构化查询**：JSONB 支持 PostgreSQL 的 JSON 操作符，可以查询特定节点
+3. **空间效率**：JSONB 存储时自动压缩，比 TEXT 存储等量 JSON 字符串更省空间
+4. **配合 plain_text**：搜索时使用冗余的 plain_text 字段，不需要解析 JSON
+
+**对比 TEXT**：TEXT 只是简单的字符串存储，无法进行结构化查询，搜索时需要实时解析 JSON，性能较差。
 
 ### Q3: 图片清理为什么要双层策略？
 
-即时清理在笔记更新/删除时触发，能快速释放磁盘空间，但存在遗漏场景：应用崩溃、数据库事务回滚等。定时兜底每小时全量扫描，确保即使即时清理遗漏，孤立文件也会被最终清理。两层互补，确保零泄漏。
+**解答**：
+1. **即时清理**：在笔记更新/删除时触发，能快速释放磁盘空间
+2. **定时兜底**：每小时全量扫描，确保即时清理遗漏的文件
+
+**遗漏场景**：应用崩溃、数据库事务回滚、网络中断等情况可能导致即时清理失败。定时兜底可以确保即使有遗漏，孤立文件最终也会被清理。
+
+**实际效果**：零存储泄漏，确保存储空间不被无效文件占用。
 
 ### Q4: SQLAlchemy 的 expire_on_commit=False 有什么作用？
 
-默认情况下，commit 后 ORM 对象的属性会过期，下次访问时触发懒加载（同步 SQL 查询）。在异步环境中，懒加载不可用（需要 await），访问过期属性会抛出 `MissingGreenlet` 异常。设置 `expire_on_commit=False` 后，commit 后属性值仍然可用，避免此问题。
+**解答**：默认情况下，commit 后 ORM 对象的属性会过期，下次访问时会触发懒加载（同步 SQL 查询）。
+
+**在异步环境中的问题**：异步环境中懒加载不可用（需要 await），访问过期属性会抛出 `MissingGreenlet` 异常。
+
+**解决方案**：设置 `expire_on_commit=False` 后，commit 后属性值仍然可用，避免此问题。
 
 ### Q5: 为什么 Pinia Store 用 Setup Stores 而不是 Options Stores？
 
-Setup Stores 使用函数式定义，与 Composition API 的 `ref`/`computed`/`watch` 风格统一，TypeScript 类型推导更完善，且可以复用 Composition API 的组合逻辑。Options Stores 是 Vue 2 风格的遗留 API。
+**解答**：
+1. **风格统一**：Setup Stores 使用函数式定义，与 Vue 3 Composition API 的 `ref`/`computed`/`watch` 风格统一
+2. **类型推导**：TypeScript 类型推导更完善，无需额外类型声明
+3. **组合复用**：可以复用 Composition API 的组合逻辑
+
+**对比 Options Stores**：Options Stores 是 Vue 2 风格的遗留 API，在 Vue 3 中使用 Setup Stores 是更推荐的做法。
 
 ### Q6: Tiptap 编辑器的保存策略如何防止数据丢失？
 
-三重保障：防抖自动保存（3 秒无操作后触发）、快捷键手动保存（Ctrl+S 跳过防抖立即保存）、卸载兜底保存（组件销毁前检查 isDirty 状态）。状态栏实时显示 Saved/Unsaved/Saving 三态，用户始终知道保存状态。
+**解答**：三重保障机制：
+
+1. **防抖自动保存**：3 秒无操作后自动保存，避免频繁请求
+2. **快捷键手动保存**：Ctrl+S 跳过防抖立即保存
+3. **卸载兜底保存**：组件销毁前检查是否有未保存的修改
+
+**状态提示**：状态栏实时显示 Saved/Unsaved/Saving 三态，用户始终知道保存状态。
+
+**实际效果**：即使意外关闭浏览器，也能最大程度保留用户的修改。
 
 ### Q7: 前后端如何保证数据隔离？
 
-后端所有 Service 层查询都携带 `user_id` 条件，确保用户只能访问自己的数据。`get_current_user` 依赖注入从 JWT 解析用户身份，注入到每个需要鉴权的路由。数据库层面，`user_id` 外键 + CASCADE 确保删除用户时级联清理。
+**解答**：
+1. **后端鉴权**：所有 Service 层查询都携带 `user_id` 条件，确保用户只能访问自己的数据
+2. **依赖注入**：`get_current_user` 从 JWT 解析用户身份，注入到每个需要鉴权的路由
+3. **数据库约束**：`user_id` 外键 + CASCADE 确保删除用户时级联清理其数据
+
+**安全保障**：即使有人绕过前端校验，后端也会确保数据隔离。
 
 ### Q8: 为什么搜索用 ILIKE 而不是全文搜索？
 
-ILIKE 实现简单，适合项目初期的数据量。已启用 `pg_trgm` 扩展，后续可平滑升级为 GIN 三字符索引，查询性能从 O(n) 全表扫描提升到 O(log n) 索引扫描，且支持相似度排序。
+**解答**：
+1. **实现简单**：ILIKE 语法简单，适合项目初期的数据量
+2. **预留升级空间**：已启用 `pg_trgm` 扩展，后续可平滑升级为 GIN 三字符索引
+3. **性能提升**：升级后查询性能从 O(n) 全表扫描提升到 O(log n) 索引扫描，且支持相似度排序
+
+**权衡考虑**：全文搜索（如 PostgreSQL 的 tsvector）功能更强大，但配置复杂。对于笔记搜索场景，ILIKE 已足够满足需求，且保留了未来升级的可能性。

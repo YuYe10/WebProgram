@@ -1,19 +1,4 @@
-/**
- * @component UiEmpty
- * @description A centered empty-state placeholder with an icon, title, description,
- *   and an optional default slot for action buttons.
- *
- * @props icon        - CSS class for the icon (default: 'i-ph-notepad')
- * @props title       - Heading text (default: 'No items found')
- * @props description - Subtitle text (default: 'Get started by creating your first item.')
- *
- * @emits None
- *
- * @example
- * <UiEmpty icon="i-ph-note" title="No notes" description="Create your first note.">
- *   <UiButton variant="primary">New Note</UiButton>
- * </UiEmpty>
- */
+
 <script setup lang="ts">
 withDefaults(defineProps<{
   icon?: string

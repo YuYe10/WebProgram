@@ -1,3 +1,4 @@
+<script setup lang="ts">
 /**
  * @component UiButton
  * @description Reusable button component with variant, size, loading, and disabled states.
@@ -15,7 +16,6 @@
  * <UiButton variant="primary" size="md" @click="save">Save</UiButton>
  * <UiButton variant="danger" :loading="isDeleting">Delete</UiButton>
  */
-<script setup lang="ts">
 withDefaults(defineProps<{
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   size?: 'sm' | 'md' | 'lg'
