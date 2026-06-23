@@ -80,6 +80,8 @@ const saveTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 const isUploadingImage = ref(false)
 /** Hidden file input ref for image uploads */
 const imageInput = ref<HTMLInputElement | null>(null)
+/** Whether Ctrl (or Cmd on Mac) is currently held down */
+const isCtrlHeld = ref(false)
 
 // ── Tag management ──
 /** Tags currently attached to this note */
@@ -285,6 +287,45 @@ function triggerColorPicker() {
   input?.click()
 }
 
+/**
+ * Inserts, converts, or removes a hyperlink depending on context:
+ * - If the selection is already a link → unlink (remove the link format).
+ * - If text is selected (not a link) → use the selected text as the href,
+ *   converting a plain-text URL into a clickable link (no prompt).
+ * - If nothing is selected → prompt for a URL and insert it as a linked
+ *   text node at the cursor position.
+ */
+function addLink() {
+  if (!editor.value) return
+
+  // Toggle: if the cursor is on a link, remove the link mark
+  if (editor.value.isActive('link')) {
+    editor.value.chain().focus().unsetLink().run()
+    return
+  }
+
+  const { from, to } = editor.value.state.selection
+  const hasSelection = from !== to
+
+  if (hasSelection) {
+    // Use selected text itself as the link target
+    const selectedText = editor.value.state.doc.textBetween(from, to)
+    editor.value.chain().focus().setLink({ href: selectedText }).run()
+  } else {
+    // Prompt for URL and insert it as a clickable link text node
+    const url = prompt('Enter link URL:')
+    if (url) {
+      editor.value.chain().focus()
+        .insertContent({
+          type: 'text',
+          marks: [{ type: 'link', attrs: { href: url } }],
+          text: url,
+        })
+        .run()
+    }
+  }
+}
+
 /** Triggers the hidden file input for image upload */
 function triggerImageUpload() {
   imageInput.value?.click()
@@ -366,6 +407,22 @@ function closeContextMenu() {
 }
 
 /**
+ * Handles click events in the editor area.
+ * When Ctrl (or Cmd on Mac) is held and a link is clicked,
+ * opens the link in a new browser tab.
+ * @param e - The click mouse event
+ */
+function handleEditorClick(e: MouseEvent) {
+  if (!(e.ctrlKey || e.metaKey)) return
+  const target = e.target as HTMLElement
+  const link = target.closest('a')
+  if (!link || !link.href) return
+  e.preventDefault()
+  e.stopPropagation()
+  window.open(link.href, '_blank', 'noopener,noreferrer')
+}
+
+/**
  * Executes a context-menu formatting action on the editor.
  * Supports: bold, italic, underline, highlight, headings 1-3,
  * bullet/ordered/task lists, blockquote, code block, horizontal rule,
@@ -390,13 +447,9 @@ function contextAction(action: string, payload?: any) {
     case 'blockquote': chain.toggleBlockquote().run(); break
     case 'codeBlock': chain.toggleCodeBlock().run(); break
     case 'horizontalRule': chain.setHorizontalRule().run(); break
-    case 'link': {
-      const url = prompt('Enter link URL:')
-      if (url) {
-        chain.extendMarkRange('link').setLink({ href: url }).run()
-      }
+    case 'link':
+      addLink()
       break
-    }
     case 'image':
       triggerImageUpload()
       break
@@ -443,6 +496,7 @@ onMounted(async () => {
  * Global keyboard handler:
  * - Ctrl/Cmd+S: manual save
  * - Escape: close context menu if open
+ * - Ctrl/Cmd press: enables link-click cursor
  */
 function handleKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -452,11 +506,25 @@ function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && contextMenu.value.visible) {
     closeContextMenu()
   }
+  if (e.ctrlKey || e.metaKey) {
+    isCtrlHeld.value = true
+  }
+}
+
+/**
+ * Global keyup handler: resets the Ctrl-held flag when all modifier
+ * keys are released, so the link cursor reverts to the text cursor.
+ */
+function handleKeyup(e: KeyboardEvent) {
+  if (!e.ctrlKey && !e.metaKey) {
+    isCtrlHeld.value = false
+  }
 }
 
 /** Register global event listeners on mount */
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
+  document.addEventListener('keyup', handleKeyup)
   document.addEventListener('click', onDocumentClick)
 })
 
@@ -466,6 +534,7 @@ onMounted(() => {
  */
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('keyup', handleKeyup)
   document.removeEventListener('click', onDocumentClick)
   if (saveTimer.value) clearTimeout(saveTimer.value)
   // Save on unmount if dirty
@@ -633,6 +702,14 @@ watch(title, () => {
 
       <button
         class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        title="Add Link"
+        @click="addLink()"
+        :class="{ 'bg-brand-100 dark:bg-brand-900/30 text-brand-600': editor?.isActive('link') }"
+      >
+        <span class="i-ph-link w-5 h-5" />
+      </button>
+      <button
+        class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         title="Insert Image"
         :disabled="isUploadingImage"
         @click="triggerImageUpload"
@@ -731,7 +808,7 @@ watch(title, () => {
     <div v-if="showTagDropdown" class="fixed inset-0 z-30" @click="showTagDropdown = false" />
 
     <!-- Editor area with right-click context menu support -->
-    <div class="glass-card overflow-hidden" @contextmenu="handleContextMenu">
+    <div class="glass-card overflow-hidden" :class="{ 'ctrl-active': isCtrlHeld }" @contextmenu="handleContextMenu" @click="handleEditorClick">
       <EditorContent :editor="editor" />
     </div>
 
@@ -939,6 +1016,18 @@ watch(title, () => {
 .ProseMirror hr.ProseMirror-selectednode {
   outline: 2px solid var(--color-brand-500);
   outline-offset: 1px;
+}
+
+/*
+ * Ctrl-held link cursor feedback:
+ * When Ctrl (or Cmd) is held, links inside the editor show a pointer
+ * cursor and underline on hover to indicate they are clickable.
+ */
+.ctrl-active .ProseMirror a {
+  cursor: pointer;
+}
+.ctrl-active .ProseMirror a:hover {
+  text-decoration: underline;
 }
 
 /* ── Task List ── */
