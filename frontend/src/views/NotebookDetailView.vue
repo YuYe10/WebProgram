@@ -3,25 +3,40 @@
  * @component NotebookDetailView
  * @description Detail view for a single notebook, showing its notes list
  * and providing notebook/note management actions.
+ * 
+ * 单个笔记本的详情视图，显示其笔记列表并提供笔记本/笔记管理操作。
  *
  * Key features:
  * - Notebook header with icon, name, description, and note count
+ *   笔记本头部，包含图标、名称、描述和笔记数量
  * - Create note modal with optional tag selection
+ *   创建笔记模态框，支持可选标签选择
  * - Edit notebook name and description
+ *   编辑笔记本名称和描述
  * - Delete notebook with confirmation
+ *   带确认的笔记本删除
  * - Note list with archive, pin, and delete actions
+ *   笔记列表，支持归档、置顶和删除操作
  * - Auto-fetches notebook data if not already in store
+ *   如果存储中没有笔记本数据则自动获取
  *
  * @dependencies
  * - useNotebooksStore: notebook CRUD operations
+ *                      笔记本CRUD操作
  * - useNotesStore: note data for the current notebook
+ *                  当前笔记本的笔记数据
  * - useTagsStore: tags for the create-note modal
+ *                 创建笔记模态框的标签
  * - useUiStore: toast notifications
+ *               Toast通知
  * - NoteListItem: reusable note card component
+ *                 可复用的笔记卡片组件
  * - date-fns: formatted update timestamp
+ *             格式化更新时间戳
  *
  * @example
  * <!-- Route: /notebooks/:id -->
+ * <!-- 路由: /notebooks/:id -->
  * <NotebookDetailView />
  */
 import { computed, onMounted, ref } from 'vue'

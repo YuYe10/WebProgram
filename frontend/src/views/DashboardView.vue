@@ -8,14 +8,26 @@
  * - Empty state with call-to-action when no notebooks exist
  * - Create notebook modal with color and icon pickers
  * - Staggered entrance animation for notebook cards
+ * 
+ * 主仪表板视图，以响应式网格显示用户的笔记本。
+ * 通过模态对话框提供笔记本创建功能，支持自定义名称、颜色和图标。
+ * 主要特性：
+ * - 带骨架加载状态的响应式笔记本网格
+ * - 无笔记本时的空状态与操作提示
+ * - 带颜色和图标选择器的创建笔记本模态框
+ * - 笔记本卡片的交错入场动画
  *
  * @dependencies
  * - useNotebooksStore: manages notebook data and CRUD operations
+ *                      管理笔记本数据和CRUD操作
  * - useUiStore: displays toast notifications
+ *               显示Toast通知
  * - UiButton, UiModal, UiInput, UiEmpty, UiSkeleton: shared UI components
+ *                                                    共享UI组件
  *
  * @example
  * <DashboardView /> <!-- Rendered at the root "/" route -->
+ *                   <!-- 在根路由"/"渲染 -->
  */
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -32,42 +44,63 @@ const router = useRouter()
 const notebooksStore = useNotebooksStore()
 const ui = useUiStore()
 
-/** Whether the create-notebook modal is visible */
+/** Whether the create-notebook modal is visible
+ * 创建笔记本模态框是否可见
+ */
 const showCreateModal = ref(false)
-/** Name for the new notebook */
+/** Name for the new notebook
+ * 新笔记本的名称
+ */
 const newName = ref('')
-/** Description for the new notebook */
+/** Description for the new notebook
+ * 新笔记本的描述
+ */
 const newDescription = ref('')
-/** Selected icon class for the new notebook */
+/** Selected icon class for the new notebook
+ * 新笔记本的选中图标类
+ */
 const newIcon = ref('i-ph-notebook')
-/** Selected color hex for the new notebook */
+/** Selected color hex for the new notebook
+ * 新笔记本的选中颜色十六进制值
+ */
 const newColor = ref('#6366f1')
-/** Whether a notebook creation request is in progress */
+/** Whether a notebook creation request is in progress
+ * 笔记本创建请求是否正在进行中
+ */
 const creating = ref(false)
 
-/** Available icon options using Phosphor icon classes */
+/** Available icon options using Phosphor icon classes
+ * 使用Phosphor图标类的可用图标选项
+ */
 const ICON_OPTIONS = [
   'i-ph-notebook', 'i-ph-book-open', 'i-ph-code', 'i-ph-brain',
   'i-ph-lightbulb', 'i-ph-rocket', 'i-ph-heart', 'i-ph-star',
   'i-ph-flower', 'i-ph-globe', 'i-ph-coffee', 'i-ph-music-notes',
 ]
 
-/** Available color options as hex values */
+/** Available color options as hex values
+ * 可用颜色选项（十六进制值）
+ */
 const COLOR_OPTIONS = [
   '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e',
   '#f97316', '#eab308', '#22c55e', '#14b8a6',
   '#06b6d4', '#3b82f6', '#6b7280', '#1e293b',
 ]
 
-/** Fetch notebooks when the component mounts */
+/** Fetch notebooks when the component mounts
+ * 组件挂载时获取笔记本列表
+ */
 onMounted(() => {
   notebooksStore.fetchNotebooks()
 })
 
 /**
  * Creates a new notebook with the current form values.
+ * 使用当前表单值创建新笔记本。
  * On success, closes the modal, resets the form, shows a toast,
  * and navigates to the newly created notebook's detail page.
+ * 成功时，关闭模态框，重置表单，显示Toast通知，
+ * 并导航到新创建的笔记本详情页面。
  */
 async function createNotebook() {
   if (!newName.value.trim()) return

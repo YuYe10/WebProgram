@@ -4,20 +4,32 @@
  * @description Login form view for user authentication.
  * Submits email and password credentials to the auth store.
  * On success, the auth store handles redirect to the dashboard.
+ * 
+ * 用户认证的登录表单视图。
+ * 将邮箱和密码凭证提交到认证状态管理。
+ * 成功时，认证状态管理处理重定向到仪表板。
  *
  * Key features:
  * - Email and password input fields with validation
+ *   带验证的邮箱和密码输入字段
  * - Error message display from API responses
+ *   显示API响应的错误消息
  * - Loading state during authentication
+ *   认证期间的加载状态
  * - Link to the registration page
+ *   指向注册页面的链接
  *
  * @dependencies
  * - useAuthStore: handles login API call and auth state
+ *                 处理登录API调用和认证状态
  * - useUiStore: displays welcome toast on success
+ *               成功时显示欢迎Toast
  * - UiButton, UiInput: shared UI components
+ *                      共享UI组件
  *
  * @example
  * <!-- Route: /auth/login -->
+ * <!-- 路由: /auth/login -->
  * <LoginView />
  */
 import { ref } from 'vue'
@@ -31,19 +43,30 @@ const router = useRouter()
 const auth = useAuthStore()
 const ui = useUiStore()
 
-/** User email input */
+/** User email input
+ * 用户邮箱输入
+ */
 const email = ref('')
-/** User password input */
+/** User password input
+ * 用户密码输入
+ */
 const password = ref('')
-/** Whether the login request is in progress */
+/** Whether the login request is in progress
+ * 登录请求是否正在进行中
+ */
 const isLoading = ref(false)
-/** Error message from validation or API response */
+/** Error message from validation or API response
+ * 验证或API响应的错误消息
+ */
 const error = ref('')
 
 /**
  * Handles form submission: validates required fields,
  * calls the auth store's login method, and displays
  * a welcome toast on success or an error message on failure.
+ * 处理表单提交：验证必填字段，
+ * 调用认证状态管理的登录方法，
+ * 成功时显示欢迎Toast，失败时显示错误消息。
  */
 async function handleSubmit() {
   if (!email.value || !password.value) {

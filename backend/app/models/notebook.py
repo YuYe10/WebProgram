@@ -1,8 +1,10 @@
 """Notebook ORM model.
+笔记本ORM模型
 
 Defines the ``notebooks`` table.  A notebook belongs to a single user
 and contains zero or more notes.  Deleting a notebook cascades to its
 child notes.
+定义`notebooks`表。一个笔记本属于单个用户，包含零个或多个笔记。删除笔记本会级联删除其子笔记。
 """
 
 import uuid
@@ -17,12 +19,17 @@ from app.core.database import Base
 
 class Notebook(Base):
     """Represents a notebook that groups related notes.
+    表示分组相关笔记的笔记本
 
     Table name: ``notebooks``
+    表名：`notebooks`
 
     Key constraints:
         * ``id`` – UUID primary key, auto-generated.
         * ``user_id`` – FK to ``users.id`` with CASCADE delete, indexed.
+    关键约束：
+        * `id` - UUID主键，自动生成
+        * `user_id` - 外键关联`users.id`，级联删除，索引
 
     Attributes:
         id: Unique notebook identifier (UUID4).
@@ -35,10 +42,24 @@ class Notebook(Base):
         is_archived: Soft-delete flag; archived notebooks are hidden by default.
         created_at: Timestamp when the record was created (server-side default).
         updated_at: Timestamp when the record was last updated (auto-refreshed).
+    属性：
+        id: 唯一笔记本标识符(UUID4)
+        user_id: 笔记本所有者；索引用于快速查找
+        name: 笔记本显示名称（最大200字符）
+        description: 笔记本的可选较长描述
+        icon: Iconify图标类字符串（例如`"i-ph-notebook"`）
+        color: UI主题的十六进制颜色代码（7字符，包含`#`）
+        sort_order: 用于同级手动排序的整数
+        is_archived: 软删除标志；归档的笔记本默认隐藏
+        created_at: 记录创建时间戳（服务器端默认）
+        updated_at: 记录最后更新时间戳（自动刷新）
 
     Relationships:
         user: The ``User`` who owns this notebook.
         notes: All notes contained in this notebook (cascade delete).
+    关系：
+        user: 拥有此笔记本的`User`
+        notes: 此笔记本中包含的所有笔记（级联删除）
     """
 
     __tablename__ = "notebooks"

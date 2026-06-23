@@ -4,12 +4,16 @@
  * lazy-loaded components, layout wrappers, and meta fields for auth/guest
  * access control. The global {@link authGuard} is registered as a
  * `beforeEach` hook.
+ * Vue Router配置。定义所有应用路由，包含懒加载组件、布局包装器和用于认证/访客
+ * 访问控制的meta字段。全局{@link authGuard}注册为`beforeEach`钩子。
  */
 
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { authGuard } from './guards'
 
-/** Application route definitions. */
+/** Application route definitions.
+ * 应用路由定义。
+ */
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
@@ -77,12 +81,16 @@ const routes: RouteRecordRaw[] = [
   },
 ]
 
+/** Vue Router instance with HTML5 history mode.
+ * 使用HTML5历史模式的Vue Router实例。
+ */
 const router = createRouter({
   history: createWebHistory(),
   routes,
 })
 
 // Register the global navigation guard for authentication checks
+// 注册全局导航守卫用于认证检查
 router.beforeEach(authGuard)
 
 export default router

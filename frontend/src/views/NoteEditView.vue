@@ -5,6 +5,9 @@
  * Provides a full-featured editing experience with auto-save, image upload,
  * tag management, and a right-click context menu.
  *
+ * 基于Tiptap的富文本笔记编辑器视图。提供全功能的编辑体验，包括自动保存、图片上传、
+ * 标签管理和右键上下文菜单。
+ *
  * Key features:
  * - Tiptap-based WYSIWYG editor with 15+ extensions (headings, lists, tables, code blocks, etc.)
  * - Auto-save with 3-second debounce after content changes
@@ -16,6 +19,17 @@
  * - Character and word count in the status bar
  * - Staggered save-on-unmount when dirty
  *
+ * 主要特性：
+ * - 基于Tiptap的WYSIWYG编辑器，包含15+扩展（标题、列表、表格、代码块等）
+ * - 内容更改后3秒防抖自动保存
+ * - 通过Ctrl/Cmd+S快捷键手动保存
+ * - 图片上传，支持文件类型/大小验证（最大5 MB）
+ * - 通过下拉菜单添加/移除标签
+ * - 右键上下文菜单，支持格式化、标题、列表和块级操作
+ * - 预设调色板的文本颜色选择器
+ * - 状态栏显示字符和单词计数
+ * - 组件卸载时自动保存未更改内容
+ *
  * @dependencies
  * - useNotesStore: fetches and updates note data
  * - useTagsStore: provides available tags for the dropdown
@@ -23,6 +37,14 @@
  * - useUiStore: displays toast notifications
  * - @tiptap/vue-3 + extensions: rich-text editor engine
  * - lowlight: syntax highlighting for code blocks
+ *
+ * @依赖
+ * - useNotesStore: 获取和更新笔记数据
+ * - useTagsStore: 为下拉菜单提供可用标签
+ * - useEditorStore: 跟踪状态栏的脏/保存状态
+ * - useUiStore: 显示toast通知
+ * - @tiptap/vue-3 + extensions: 富文本编辑器引擎
+ * - lowlight: 代码块语法高亮
  *
  * @example
  * <!-- Accessed via route: /notebooks/:notebookId/notes/:noteId -->
@@ -66,30 +88,41 @@ const tagsStore = useTagsStore()
 const editorStore = useEditorStore()
 const ui = useUiStore()
 
-/** ID of the parent notebook, extracted from route params */
+/** ID of the parent notebook, extracted from route params.
+ * 父笔记本ID，从路由参数中提取 */
 const notebookId = route.params.notebookId as string
-/** ID of the current note, extracted from route params */
+/** ID of the current note, extracted from route params.
+ * 当前笔记ID，从路由参数中提取 */
 const noteId = route.params.noteId as string
-/** Note title bound to the title input */
+/** Note title bound to the title input.
+ * 绑定到标题输入框的笔记标题 */
 const title = ref('')
-/** Whether the note data is being loaded */
+/** Whether the note data is being loaded.
+ * 笔记数据是否正在加载中 */
 const isLoading = ref(true)
-/** Timer reference for the auto-save debounce */
+/** Timer reference for the auto-save debounce.
+ * 自动保存防抖的定时器引用 */
 const saveTimer = ref<ReturnType<typeof setTimeout> | null>(null)
-/** Whether an image upload is in progress */
+/** Whether an image upload is in progress.
+ * 是否正在上传图片 */
 const isUploadingImage = ref(false)
-/** Hidden file input ref for image uploads */
+/** Hidden file input ref for image uploads.
+ * 用于图片上传的隐藏文件输入引用 */
 const imageInput = ref<HTMLInputElement | null>(null)
 
 // ── Tag management ──
-/** Tags currently attached to this note */
+// ── 标签管理 ──
+/** Tags currently attached to this note.
+ * 当前附加到该笔记的标签 */
 const noteTags = ref<Tag[]>([])
-/** Whether the tag-attachment dropdown is open */
+/** Whether the tag-attachment dropdown is open.
+ * 标签添加下拉菜单是否打开 */
 const showTagDropdown = ref(false)
 
 /**
  * Computed list of tags not yet attached to this note,
  * used to populate the tag dropdown.
+ * 尚未附加到该笔记的标签列表（计算属性），用于填充标签下拉菜单。
  */
 const availableTags = computed(() =>
   tagsStore.tags.filter(t => !noteTags.value.some(nt => nt.id === t.id))
@@ -98,7 +131,8 @@ const availableTags = computed(() =>
 /**
  * Attaches a tag to the current note via the API
  * and updates the local tag list on success.
- * @param tag - The tag to attach
+ * 通过API将标签附加到当前笔记，并在成功时更新本地标签列表。
+ * @param tag - The tag to attach. 要附加的标签
  */
 async function attachTag(tag: Tag) {
   try {
@@ -113,7 +147,8 @@ async function attachTag(tag: Tag) {
 /**
  * Detaches a tag from the current note via the API
  * and updates the local tag list on success.
- * @param tag - The tag to detach
+ * 通过API从当前笔记分离标签，并在成功时更新本地标签列表。
+ * @param tag - The tag to detach. 要分离的标签
  */
 async function detachTag(tag: Tag) {
   try {
@@ -124,16 +159,19 @@ async function detachTag(tag: Tag) {
   }
 }
 
-/** Right-click context menu position and visibility state */
+/** Right-click context menu position and visibility state.
+ * 右键上下文菜单的位置和可见性状态 */
 const contextMenu = ref({
   visible: false,
   x: 0,
   y: 0,
 })
-/** Whether the color sub-menu is open inside the context menu */
+/** Whether the color sub-menu is open inside the context menu.
+ * 上下文菜单中的颜色子菜单是否打开 */
 const showColorSubmenu = ref(false)
 
-/** Preset colors for the text-color sub-menu in the context menu */
+/** Preset colors for the text-color sub-menu in the context menu.
+ * 上下文菜单中文本颜色子菜单的预设颜色 */
 const presetColors = [
   '#ef4444', '#f97316', '#f59e0b', '#eab308',
   '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6',
@@ -141,12 +179,14 @@ const presetColors = [
   '#ec4899', '#f43f5e', '#6b7280', '#374151',
 ]
 
-/** Lowlight instance for syntax highlighting in code blocks */
+/** Lowlight instance for syntax highlighting in code blocks.
+ * 用于代码块语法高亮的Lowlight实例 */
 const lowlight = createLowlight(common)
 
 /**
  * Custom CodeBlock extension that renders a language label
  * above the code block based on the `data-language` attribute.
+ * 自定义CodeBlock扩展，基于`data-language`属性在代码块上方渲染语言标签。
  */
 const CodeBlockWithLabel = CodeBlockLowlight.extend({
   renderHTML({ node, HTMLAttributes }) {
@@ -174,6 +214,7 @@ const CodeBlockWithLabel = CodeBlockLowlight.extend({
 /**
  * Tiptap editor instance configured with all extensions.
  * Triggers auto-save on every content update.
+ * 配置了所有扩展的Tiptap编辑器实例。每次内容更新时触发自动保存。
  */
 const editor = useEditor({
   extensions: [
@@ -215,6 +256,7 @@ const editor = useEditor({
 /**
  * Schedules an auto-save after a 3-second debounce.
  * Clears any existing timer before setting a new one.
+ * 在3秒防抖后安排自动保存。设置新定时器前清除任何现有定时器。
  */
 function scheduleAutoSave() {
   if (saveTimer.value) clearTimeout(saveTimer.value)
@@ -224,6 +266,7 @@ function scheduleAutoSave() {
 /**
  * Saves the current note (title + content) to the backend.
  * Updates the editor store's saving/dirty state accordingly.
+ * 将当前笔记（标题+内容）保存到后端。相应更新编辑器状态管理器的保存/脏状态。
  */
 async function saveNote() {
   if (!editor.value) return
@@ -245,6 +288,7 @@ async function saveNote() {
 /**
  * Saves the note and navigates back to the notebook detail page
  * only if the save succeeded (editor is no longer dirty).
+ * 保存笔记并导航回笔记本详情页（仅在保存成功时，即编辑器不再有脏状态）。
  */
 async function saveAndClose() {
   await saveNote()
@@ -256,7 +300,8 @@ async function saveAndClose() {
 /**
  * Returns the text color of the current selection, or a default gray
  * if no color is set or nothing is selected.
- * @returns The current text color as a hex string
+ * 返回当前选区的文本颜色，如果未设置颜色或没有选区则返回默认灰色。
+ * @returns The current text color as a hex string. 当前文本颜色（十六进制字符串）
  */
 function getCurrentColor(): string {
   if (!editor.value) return '#374151'
@@ -269,7 +314,8 @@ function getCurrentColor(): string {
 /**
  * Sets the text color for the current selection.
  * Passing an empty string resets the color to default.
- * @param color - Hex color string or empty string to reset
+ * 为当前选区设置文本颜色。传入空字符串可重置为默认颜色。
+ * @param color - Hex color string or empty string to reset. 十六进制颜色字符串或空字符串（重置）
  */
 function setColor(color: string) {
   if (color === '') {
@@ -279,13 +325,15 @@ function setColor(color: string) {
   }
 }
 
-/** Opens the hidden native color picker input for text color */
+/** Opens the hidden native color picker input for text color.
+ * 打开用于文本颜色的隐藏原生颜色选择器输入 */
 function triggerColorPicker() {
   const input = document.getElementById('text-color-input') as HTMLInputElement | null
   input?.click()
 }
 
-/** Triggers the hidden file input for image upload */
+/** Triggers the hidden file input for image upload.
+ * 触发用于图片上传的隐藏文件输入 */
 function triggerImageUpload() {
   imageInput.value?.click()
 }
@@ -294,7 +342,9 @@ function triggerImageUpload() {
  * Handles image file selection, validates type and size,
  * uploads to the server, and inserts the image into the editor.
  * Accepted types: JPEG, PNG, GIF, WebP, SVG. Max size: 5 MB.
- * @param event - The file input change event
+ * 处理图片文件选择，验证类型和大小，上传到服务器，并将图片插入编辑器。
+ * 接受的类型：JPEG、PNG、GIF、WebP、SVG。最大大小：5 MB。
+ * @param event - The file input change event. 文件输入变更事件
  */
 async function handleImageUpload(event: Event) {
   const target = event.target as HTMLInputElement
@@ -338,10 +388,12 @@ async function handleImageUpload(event: Event) {
 }
 
 // Context menu handlers
+// 上下文菜单处理函数
 /**
  * Opens the context menu at the mouse position, adjusting
  * coordinates to prevent overflow beyond the viewport.
- * @param e - The right-click mouse event
+ * 在鼠标位置打开上下文菜单，调整坐标以防止超出视口。
+ * @param e - The right-click mouse event. 右键鼠标事件
  */
 function handleContextMenu(e: MouseEvent) {
   e.preventDefault()
@@ -359,7 +411,8 @@ function handleContextMenu(e: MouseEvent) {
   contextMenu.value = { visible: true, x, y }
 }
 
-/** Closes the context menu and its color sub-menu */
+/** Closes the context menu and its color sub-menu.
+ * 关闭上下文菜单及其颜色子菜单 */
 function closeContextMenu() {
   contextMenu.value.visible = false
   showColorSubmenu.value = false
@@ -370,8 +423,12 @@ function closeContextMenu() {
  * Supports: bold, italic, underline, highlight, headings 1-3,
  * bullet/ordered/task lists, blockquote, code block, horizontal rule,
  * link insertion, image upload, and clear formatting.
- * @param action - The action identifier string
- * @param payload - Optional additional data (e.g., link URL)
+ * 在编辑器上执行上下文菜单格式化操作。
+ * 支持：粗体、斜体、下划线、高亮、标题1-3级、
+ * 无序列表/有序列表/任务列表、引用块、代码块、水平线、
+ * 链接插入、图片上传和清除格式。
+ * @param action - The action identifier string. 操作标识符字符串
+ * @param payload - Optional additional data (e.g., link URL). 可选的附加数据（如链接URL）
  */
 function contextAction(action: string, payload?: any) {
   if (!editor.value) return
@@ -407,7 +464,8 @@ function contextAction(action: string, payload?: any) {
   closeContextMenu()
 }
 
-/** Closes the context menu when clicking outside of it */
+/** Closes the context menu when clicking outside of it.
+ * 点击外部时关闭上下文菜单 */
 function onDocumentClick(e: MouseEvent) {
   if (contextMenu.value.visible) {
     closeContextMenu()
@@ -418,6 +476,8 @@ function onDocumentClick(e: MouseEvent) {
  * Loads the note data on mount, initializes the editor content,
  * sets the current note ID in the editor store, and fetches available tags.
  * Redirects to the notebook detail page if the note is not found.
+ * 挂载时加载笔记数据，初始化编辑器内容，在编辑器状态管理器中设置当前笔记ID，并获取可用标签。
+ * 如果笔记未找到则重定向到笔记本详情页。
  */
 onMounted(async () => {
   try {
@@ -443,6 +503,9 @@ onMounted(async () => {
  * Global keyboard handler:
  * - Ctrl/Cmd+S: manual save
  * - Escape: close context menu if open
+ * 全局键盘处理器：
+ * - Ctrl/Cmd+S：手动保存
+ * - Escape：关闭上下文菜单（如果打开）
  */
 function handleKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -454,7 +517,8 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
-/** Register global event listeners on mount */
+/** Register global event listeners on mount.
+ * 挂载时注册全局事件监听器 */
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
   document.addEventListener('click', onDocumentClick)
@@ -463,6 +527,8 @@ onMounted(() => {
 /**
  * Clean up on unmount: remove event listeners, clear save timer,
  * and perform a final save if there are unsaved changes.
+ * 卸载时清理：移除事件监听器，清除保存定时器，
+ * 如果有未保存的更改则执行最终保存。
  */
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeydown)
@@ -472,7 +538,8 @@ onBeforeUnmount(() => {
   if (editorStore.isDirty) saveNote()
 })
 
-/** Watch title changes to mark dirty and schedule auto-save */
+/** Watch title changes to mark dirty and schedule auto-save.
+ * 监听标题变化以标记脏状态并安排自动保存 */
 watch(title, () => {
   editorStore.markDirty()
   scheduleAutoSave()

@@ -1,9 +1,11 @@
 """Note ORM model.
+笔记ORM模型
 
 Defines the ``notes`` table.  A note belongs to both a user and a
 notebook and stores rich-text content as JSONB.  Notes can be pinned
 or soft-archived and are linked to tags through the ``note_tags``
 association table.
+定义`notes`表。笔记属于用户和笔记本，富文本内容存储为JSONB。笔记可以置顶或软归档，并通过`note_tags`关联表链接到标签。
 """
 
 import uuid
@@ -18,13 +20,19 @@ from app.core.database import Base
 
 class Note(Base):
     """Represents a single note within a notebook.
+    表示笔记本中的单个笔记
 
     Table name: ``notes``
+    表名：`notes`
 
     Key constraints:
         * ``id`` – UUID primary key, auto-generated.
         * ``notebook_id`` – FK to ``notebooks.id`` with CASCADE delete, indexed.
         * ``user_id`` – FK to ``users.id`` with CASCADE delete, indexed.
+    关键约束：
+        * `id` - UUID主键，自动生成
+        * `notebook_id` - 外键关联`notebooks.id`，级联删除，索引
+        * `user_id` - 外键关联`users.id`，级联删除，索引
 
     Attributes:
         id: Unique note identifier (UUID4).
@@ -38,11 +46,27 @@ class Note(Base):
         archived_at: Timestamp when the note was archived, if applicable.
         created_at: Timestamp when the record was created (server-side default).
         updated_at: Timestamp when the record was last updated (auto-refreshed).
+    属性：
+        id: 唯一笔记标识符(UUID4)
+        notebook_id: 此笔记所属的笔记本；索引用于查找
+        user_id: 拥有此笔记的用户；索引用于查找
+        title: 笔记标题（最大500字符，默认为`"Untitled"`）
+        content: 富文本内容，存储为JSONB（编辑器文档结构）
+        plain_text: 提取的纯文本，用于全文搜索
+        is_pinned: 笔记是否置顶到笔记本顶部
+        is_archived: 软删除标志；归档的笔记默认隐藏
+        archived_at: 笔记归档时间戳（如适用）
+        created_at: 记录创建时间戳（服务器端默认）
+        updated_at: 记录最后更新时间戳（自动刷新）
 
     Relationships:
         notebook: The ``Notebook`` this note belongs to.
         user: The ``User`` who owns this note.
         tags: All tags associated with this note via the ``note_tags`` table.
+    关系：
+        notebook: 此笔记所属的`Notebook`
+        user: 拥有此笔记的`User`
+        tags: 通过`note_tags`表与此笔记关联的所有标签
     """
 
     __tablename__ = "notes"

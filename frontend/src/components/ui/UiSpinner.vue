@@ -2,9 +2,13 @@
  * @component UiSpinner
  * @description A simple spinning loader icon using the brand color.
  *
+ * 使用品牌颜色的简单旋转加载图标组件。
+ *
  * @props size - Icon size: 'sm' | 'md' | 'lg' (default: 'md')
+ *               图标尺寸：小 | 中 | 大（默认：中）
  *
  * @emits None
+ *        无事件
  *
  * @example
  * <UiSpinner size="lg" />

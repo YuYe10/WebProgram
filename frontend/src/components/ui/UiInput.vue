@@ -3,15 +3,26 @@
  * @description A styled text input with optional label, icon, error message, and v-model support.
  *   Implements the two-way binding pattern via `modelValue` / `update:modelValue`.
  *
+ * 带样式的文本输入组件，支持可选标签、图标、错误消息和v-model绑定。
+ * 通过`modelValue`/`update:modelValue`实现双向绑定模式。
+ *
  * @props modelValue   - The current input value (v-model binding)
+ *                       当前输入值（v-model绑定）
  * @props label        - Optional label text displayed above the input
+ *                       显示在输入框上方的可选标签文本
  * @props placeholder  - Placeholder text for the input
+ *                       输入框的占位符文本
  * @props type         - HTML input type attribute (default: 'text')
+ *                       HTML输入类型（默认：'text'）
  * @props error        - Error message displayed below the input; also triggers error styling
+ *                       显示在输入框下方的错误消息；同时触发错误样式
  * @props disabled     - Whether the input is disabled
+ *                       是否禁用输入框
  * @props icon         - CSS class for a leading icon inside the input
+ *                       输入框内前置图标的CSS类
  *
  * @emits update:modelValue - Emitted with the new value on input
+ *                            输入时触发，携带新值
  *
  * @example
  * <UiInput v-model="email" label="Email" type="email" icon="i-ph-envelope" :error="emailError" />

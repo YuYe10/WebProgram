@@ -3,21 +3,33 @@
  * @component TagsManageView
  * @description Tag management view providing full CRUD operations for tags.
  * Tags are used to categorize and filter notes across notebooks.
+ * 
+ * 标签管理视图，提供标签的完整CRUD操作。
+ * 标签用于在笔记本之间对笔记进行分类和过滤。
  *
  * Key features:
  * - Create tags with name and color
+ *   创建带名称和颜色的标签
  * - Edit existing tag name and color with live preview
+ *   编辑现有标签名称和颜色，带实时预览
  * - Delete tags with confirmation (removes from all notes)
+ *   带确认的标签删除（从所有笔记中移除）
  * - Click a tag to navigate to filtered notes view
+ *   点击标签导航到过滤后的笔记视图
  * - Color picker with preset palette
+ *   预设调色板的颜色选择器
  *
  * @dependencies
  * - useTagsStore: tag data and CRUD operations
+ *                 标签数据和CRUD操作
  * - useUiStore: toast notifications
+ *               Toast通知
  * - UiButton, UiModal, UiInput, UiEmpty: shared UI components
+ *                                       共享UI组件
  *
  * @example
  * <!-- Route: /tags -->
+ * <!-- 路由: /tags -->
  * <TagsManageView />
  */
 import { onMounted, ref } from 'vue'
@@ -34,36 +46,60 @@ const router = useRouter()
 const tagsStore = useTagsStore()
 const ui = useUiStore()
 
-/** Whether the create-tag modal is visible */
+/** Whether the create-tag modal is visible
+ * 创建标签模态框是否可见
+ */
 const showCreateModal = ref(false)
-/** Whether the edit-tag modal is visible */
+/** Whether the edit-tag modal is visible
+ * 编辑标签模态框是否可见
+ */
 const showEditModal = ref(false)
-/** The tag currently being edited */
+/** The tag currently being edited
+ * 当前正在编辑的标签
+ */
 const editingTag = ref<Tag | null>(null)
-/** Create form: new tag name */
+/** Create form: new tag name
+ * 创建表单：新标签名称
+ */
 const newTagName = ref('')
-/** Create form: new tag color */
+/** Create form: new tag color
+ * 创建表单：新标签颜色
+ */
 const newTagColor = ref('#a855f7')
-/** Edit form: tag name */
+/** Edit form: tag name
+ * 编辑表单：标签名称
+ */
 const editTagName = ref('')
-/** Edit form: tag color */
+/** Edit form: tag color
+ * 编辑表单：标签颜色
+ */
 const editTagColor = ref('#a855f7')
-/** Whether a tag creation request is in progress */
+/** Whether a tag creation request is in progress
+ * 标签创建请求是否正在进行中
+ */
 const creating = ref(false)
-/** Whether a tag update request is in progress */
+/** Whether a tag update request is in progress
+ * 标签更新请求是否正在进行中
+ */
 const updating = ref(false)
 
-/** Preset color palette for tag creation and editing */
+/** Preset color palette for tag creation and editing
+ * 标签创建和编辑的预设调色板
+ */
 const TAG_COLORS = ['#a855f7', '#6366f1', '#3b82f6', '#06b6d4', '#22c55e', '#eab308', '#f97316', '#ef4444', '#ec4899']
 
-/** Fetch tags on mount */
+/** Fetch tags on mount
+ * 挂载时获取标签
+ */
 onMounted(() => tagsStore.fetchTags())
 
 // ── Create tag ──
 
 /**
  * Creates a new tag with the provided name and color.
+ * 使用提供的名称和颜色创建新标签。
  * Resets the form and closes the modal on success.
+ * 成功时重置表单并关闭模态框。
  */
 async function createTag() {
   if (!newTagName.value.trim()) return
@@ -85,7 +121,9 @@ async function createTag() {
 
 /**
  * Opens the edit modal, pre-filling the form with the tag's current values.
+ * 打开编辑模态框，用标签当前值预填充表单。
  * @param tag - The tag to edit
+ *              要编辑的标签
  */
 function openEditModal(tag: Tag) {
   editingTag.value = tag
@@ -96,7 +134,9 @@ function openEditModal(tag: Tag) {
 
 /**
  * Updates the tag being edited with the new name and color.
+ * 用新名称和颜色更新正在编辑的标签。
  * Closes the modal on success.
+ * 成功时关闭模态框。
  */
 async function updateTag() {
   if (!editTagName.value.trim() || !editingTag.value) return
@@ -120,9 +160,13 @@ async function updateTag() {
 
 /**
  * Deletes a tag after user confirmation.
+ * 用户确认后删除标签。
  * The tag will be removed from all associated notes.
+ * 标签将从所有关联笔记中移除。
  * @param id - The tag ID to delete
+ *             要删除的标签ID
  * @param name - The tag name for the confirmation message
+ *               确认消息中显示的标签名称
  */
 async function deleteTag(id: string, name: string) {
   if (!confirm(`Delete tag "${name}"? It will be removed from all notes.`)) return
@@ -134,7 +178,9 @@ async function deleteTag(id: string, name: string) {
 
 /**
  * Navigates to the all-notes view filtered by the given tag.
+ * 导航到按给定标签过滤的所有笔记视图。
  * @param tag - The tag to filter by
+ *              用于过滤的标签
  */
 function viewTaggedNotes(tag: Tag) {
   router.push({ name: 'all-notes', query: { tag_id: tag.id } })

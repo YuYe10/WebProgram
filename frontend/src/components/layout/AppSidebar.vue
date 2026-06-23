@@ -4,9 +4,14 @@
  *   a notebook list (fetched on mount), and a user info area with logout.
  *   Visibility is controlled by the UI store (`ui.sidebarOpen`).
  *
+ * 固定在左侧的侧边栏组件，包含应用Logo、快速导航链接、笔记本列表（挂载时获取）和用户信息区域（含登出按钮）。
+ * 可见性由UI状态管理器(`ui.sidebarOpen`)控制。
+ *
  * @props None (uses stores only)
+ *        无属性（仅使用状态管理）
  *
  * @emits None
+ *        无事件
  *
  * @example
  * <AppSidebar />
@@ -24,14 +29,16 @@ const notebooksStore = useNotebooksStore()
 const ui = useUiStore()
 const auth = useAuthStore()
 
-/** Fetch the user's notebooks when the sidebar mounts */
+/** Fetch the user's notebooks when the sidebar mounts.
+ * 侧边栏挂载时获取用户的笔记本列表 */
 onMounted(() => {
   notebooksStore.fetchNotebooks()
 })
 
 /**
  * Navigate to a notebook's detail page.
- * @param id - The notebook ID
+ * 导航到笔记本详情页。
+ * @param id - The notebook ID. 笔记本ID
  */
 function goToNotebook(id: string) {
   router.push({ name: 'notebook-detail', params: { id } })
@@ -39,14 +46,16 @@ function goToNotebook(id: string) {
 
 /**
  * Check whether a notebook is currently active (route param matches).
- * @param id - The notebook ID to check
- * @returns True if the current route's `id` param matches
+ * 检查笔记本是否当前活跃（路由参数匹配）。
+ * @param id - The notebook ID to check. 要检查的笔记本ID
+ * @returns True if the current route's `id` param matches. 如果当前路由的`id`参数匹配则返回True
  */
 function isActive(id: string) {
   return route.params.id === id
 }
 
-/** Static quick-navigation items rendered above the notebook list */
+/** Static quick-navigation items rendered above the notebook list.
+ * 渲染在笔记本列表上方的静态快速导航项 */
 const NAV_ITEMS = [
   { to: '/notes', icon: 'i-ph-note-pencil', label: 'All Notes' },
   { to: '/search', icon: 'i-ph-magnifying-glass', label: 'Search' },

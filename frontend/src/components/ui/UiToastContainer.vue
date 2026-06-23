@@ -4,9 +4,14 @@
  *   from the UI store. Each toast is auto-dismissed by the store; clicking a toast
  *   removes it immediately.
  *
+ * 固定位置的容器组件，渲染UI状态管理器中所有活动的toast通知。
+ * 每个toast由状态管理器自动关闭；点击toast可立即移除。
+ *
  * @props None (reads toasts from the UI store)
+ *        无属性（从UI状态管理器读取toasts）
  *
  * @emits None
+ *        无事件
  *
  * @example
  * <UiToastContainer />
@@ -14,7 +19,8 @@
 <script setup lang="ts">
 import { useUiStore } from '@/stores/ui'
 
-/** Access the global toast queue */
+/** Access the global toast queue.
+ * 访问全局toast队列 */
 const ui = useUiStore()
 </script>
 

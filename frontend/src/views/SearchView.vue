@@ -3,23 +3,36 @@
  * @component SearchView
  * @description Full-text search view for notes with debounced query input
  * and optional notebook filtering.
+ * 
+ * 笔记的全文搜索视图，支持防抖查询输入和可选的笔记本过滤。
  *
  * Key features:
  * - Debounced search (300ms) to avoid excessive API calls
+ *   防抖搜索（300ms）避免过多API调用
  * - Notebook filter via dropdown selector
+ *   通过下拉选择器进行笔记本过滤
  * - Active filter indicator with clear button
+ *   带清除按钮的活动过滤器指示器
  * - Archive, pin, and delete actions on search results
+ *   搜索结果上的归档、置顶和删除操作
  * - Skeleton loading and empty states
+ *   骨架加载和空状态
  *
  * @dependencies
  * - searchApi: performs full-text search queries
+ *              执行全文搜索查询
  * - useNotebooksStore: provides notebooks for the filter dropdown
+ *                      为过滤器下拉菜单提供笔记本
  * - useUiStore: toast notifications
+ *               Toast通知
  * - useDebounceFn (VueUse): debounced search execution
+ *                           防抖搜索执行
  * - NoteListItem: reusable note card component
+ *                 可复用的笔记卡片组件
  *
  * @example
  * <!-- Route: /search?q=keyword&notebook_id=abc123 -->
+ * <!-- 路由: /search?q=keyword&notebook_id=abc123 -->
  * <SearchView />
  */
 import { computed, onMounted, ref, watch } from 'vue'
@@ -41,23 +54,37 @@ const router = useRouter()
 const notebooksStore = useNotebooksStore()
 const ui = useUiStore()
 
-/** Search query string, initialized from URL query param */
+/** Search query string, initialized from URL query param
+ * 搜索查询字符串，从URL查询参数初始化
+ */
 const query = ref((route.query.q as string) || '')
-/** Notebook ID filter, initialized from URL query param */
+/** Notebook ID filter, initialized from URL query param
+ * 笔记本ID过滤器，从URL查询参数初始化
+ */
 const notebookId = ref((route.query.notebook_id as string) || '')
-/** Search result notes */
+/** Search result notes
+ * 搜索结果笔记
+ */
 const results = ref<Note[]>([])
-/** Whether a search request is in progress */
+/** Whether a search request is in progress
+ * 搜索请求是否正在进行中
+ */
 const isLoading = ref(false)
-/** Total number of matching results */
+/** Total number of matching results
+ * 匹配结果总数
+ */
 const total = ref(0)
 
-/** The notebook object for the active filter, if any */
+/** The notebook object for the active filter, if any
+ * 活动过滤器的笔记本对象（如果有）
+ */
 const selectedNotebook = computed(() =>
   notebooksStore.notebooks.find(n => n.id === notebookId.value)
 )
 
-/** Fetch notebooks for the filter dropdown on mount */
+/** Fetch notebooks for the filter dropdown on mount
+ * 挂载时获取笔记本用于过滤器下拉菜单
+ */
 onMounted(() => {
   notebooksStore.fetchNotebooks()
 })
@@ -65,6 +92,7 @@ onMounted(() => {
 /**
  * Computed description for the empty state, including
  * the search query and optional notebook name.
+ * 空状态的计算描述，包含搜索查询和可选的笔记本名称。
  */
 const emptyDescription = computed(() => {
   const parts = [`No notes found for "${query.value}"`]
@@ -74,8 +102,10 @@ const emptyDescription = computed(() => {
 
 /**
  * Debounced search function (300ms delay).
+ * 防抖搜索函数（300ms延迟）。
  * Clears results when the query is empty; otherwise calls the search API
  * with optional notebook filter.
+ * 查询为空时清除结果；否则调用搜索API并可选地使用笔记本过滤器。
  */
 const search = useDebounceFn(async () => {
   if (!query.value.trim()) {
@@ -100,20 +130,26 @@ const search = useDebounceFn(async () => {
   }
 }, 300)
 
-/** Trigger search immediately when query or notebook filter changes */
+/** Trigger search immediately when query or notebook filter changes
+ * 查询或笔记本过滤器变化时立即触发搜索
+ */
 watch([query, notebookId], () => {
   search()
 }, { immediate: true })
 
 /**
  * Navigates to the note editor for the given search result.
+ * 导航到给定搜索结果的笔记编辑器。
  * @param note - The note to open
+ *               要打开的笔记
  */
 function goToNote(note: Note) {
   router.push({ name: 'note-edit', params: { notebookId: note.notebook_id, noteId: note.id } })
 }
 
-/** Clears the notebook filter */
+/** Clears the notebook filter
+ * 清除笔记本过滤器
+ */
 function clearNotebookFilter() {
   notebookId.value = ''
 }
