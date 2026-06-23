@@ -276,3 +276,5 @@ tempCodeRunnerFile.py
 *.lot
 *.lof
 *.lot
+
+.trae/
