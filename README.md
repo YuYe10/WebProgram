@@ -21,6 +21,10 @@
     - [步骤 4：配置前端](#步骤-4配置前端)
     - [步骤 5：运行前端](#步骤-5运行前端)
     - [访问应用](#访问应用)
+    - [数据库配置说明](#数据库配置说明)
+      - [数据库初始化](#数据库初始化)
+      - [数据库迁移](#数据库迁移)
+      - [常见问题排查](#常见问题排查)
   - [⚙️ 配置说明](#️-配置说明)
     - [后端环境变量](#后端环境变量)
     - [前端环境变量](#前端环境变量)
@@ -221,6 +225,60 @@ npm run dev
 | 后端 API | http://localhost:8000 | API 服务端点 |
 | Swagger 文档 | http://localhost:8000/docs | 交互式 API 文档 |
 | ReDoc | http://localhost:8000/redoc | 结构化 API 文档 |
+
+### 数据库配置说明
+
+#### 数据库初始化
+
+数据库容器首次启动时，会自动执行 `backend/docker/init.sql` 脚本，创建以下必要的扩展：
+
+- **uuid-ossp**：用于生成 UUID 主键
+- **pg_trgm**：用于模糊搜索功能
+- **中文全文搜索配置**：支持中文内容搜索
+
+#### 数据库迁移
+
+项目使用 Alembic 管理数据库迁移：
+
+```bash
+# 查看当前迁移状态
+alembic current
+
+# 查看可用迁移
+alembic heads
+
+# 执行所有未应用的迁移
+alembic upgrade head
+
+# 创建新的迁移脚本
+alembic revision --autogenerate -m "description of changes"
+```
+
+#### 常见问题排查
+
+**问题 1：数据库连接失败**
+```bash
+# 检查数据库容器是否运行
+docker compose ps
+
+# 查看数据库日志
+docker compose logs db
+
+# 确保 .env 文件中的数据库连接信息正确
+DATABASE_URL=postgresql+asyncpg://noteworthy:noteworthy_secret@localhost:5432/noteworthy
+```
+
+**问题 2：迁移失败**
+```bash
+# 确保数据库已启动且可访问
+docker compose up -d db
+
+# 等待数据库就绪（约 5 秒）
+sleep 5
+
+# 重新执行迁移
+alembic upgrade head
+```
 
 ---
 
@@ -519,7 +577,7 @@ npm run test
 
 如果您在使用过程中遇到问题或有任何建议，请：
 
-1. 查看 [API 文档](http://localhost:8000/docs)
+1. 查看 [API 文档](docs/api-docs-example.pdf)
 2. 查阅 [技术文档](Noteworthy.md)
 3. 在 GitHub 仓库提交 Issue
 
